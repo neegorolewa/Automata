@@ -331,13 +331,80 @@ MealyAutomata convertMooreToMealy(MooreAutomata moore)
     return mealy;
 }
 
+vector<::pair<string, string>> extractMooreStates(const unordered_map<string, vector<MealyState>>& mealyTransitions, const std::string& startState)
+{
+    set<pair<string, string>> statesForMoore;
+    for (const auto& transitionForOneEntry : mealyTransitions)
+    {
+        for (const auto& transition : transitionForOneEntry.second)
+        {
+            statesForMoore.insert({ transition.state, transition.output });
+        }
+    }
 
+    vector<pair<string, string>> statesForMooreVector;
+    bool containsStartState = false;
+    for (const auto& state : statesForMoore)
+    {
+        statesForMooreVector.push_back(state);
+        if (state.first == startState)
+        {
+            containsStartState = true;
+        }
+    }
+
+    if (!containsStartState)
+    {
+        statesForMooreVector.insert(statesForMooreVector.begin(), std::make_pair(startState, ""));
+    }
+
+    return statesForMooreVector;
+}
 
 MooreAutomata convertMealyToMoore(MealyAutomata mealy)
 {
     MooreAutomata moore;
 
-    
+    vector<string> reachableStates = findReachableStatesMealy(mealy, mealy.states[0]);
+    MealyAutomata newMealy;
+    newMealy.inputSymbols = mealy.inputSymbols;
+    newMealy.transitions = unordered_map<string, vector<MealyState>>();
+
+    for (const auto& state : reachableStates)
+    {
+        size_t index = find(mealy.states.begin(), mealy.states.end(), state) - mealy.states.begin();
+        newMealy.states.push_back(state);
+        for (const auto& inSymbol : newMealy.inputSymbols)
+        {
+            newMealy.transitions[inSymbol].push_back(mealy.transitions[inSymbol][index]);
+        }
+    }
+
+    auto statesForMoore = extractMooreStates(newMealy.transitions, newMealy.states[0]);
+
+    for (size_t i = 0; i < statesForMoore.size(); i++)
+    {
+        moore.states.push_back("q" + to_string(i));
+        moore.outputs[moore.states.back()] = statesForMoore[i].second;
+    }
+
+    moore.inputSymbols = newMealy.inputSymbols;
+
+    for (const auto& inputSymbol : newMealy.inputSymbols)
+    {
+        vector<string> transitions;
+
+        for (const auto& state : newMealy.states)
+        {
+            size_t index = find(newMealy.states.begin(), newMealy.states.end(), state) - newMealy.states.begin();
+            string nextState = newMealy.transitions[inputSymbol][index].state;
+            string nextOutput = newMealy.transitions[inputSymbol][index].output;
+            string nextMooreState = moore.states[find(statesForMoore.begin(), statesForMoore.end(), make_pair(nextState, nextOutput)) - statesForMoore.begin()];
+            transitions.push_back(nextMooreState);
+        }
+
+        moore.transitions[inputSymbol] = transitions;
+    }
 
     return moore;
 }
