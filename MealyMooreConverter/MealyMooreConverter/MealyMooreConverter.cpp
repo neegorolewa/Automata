@@ -337,75 +337,13 @@ MooreAutomata convertMealyToMoore(MealyAutomata mealy)
 {
     MooreAutomata moore;
 
-    // Создаем множество уникальных состояний и выходных символов
-    set<pair<string, string>> uniqueStates;
-    for (const auto& inputSymbol : mealy.inputSymbols)
-    {
-        for (const auto& transition : mealy.transitions.at(inputSymbol))
-        {
-            uniqueStates.insert({ transition.state, transition.output });
-        }
-    }
-
-    // Добавляем начальное состояние, если его нет в множестве
-    uniqueStates.insert({ mealy.states[0], "" });
-
-    // Создаем состояния Мура
-    for (const auto& state : uniqueStates)
-    {
-        moore.states.push_back(state.first);
-        moore.outputs[state.first] = state.second;
-    }
-
-    // Копируем входные символы
-    moore.inputSymbols = mealy.inputSymbols;
-
-    // Создаем переходы для Мура
-    for (const auto& inputSymbol : mealy.inputSymbols)
-    {
-        vector<string> transitions;
-        for (const auto& state : mealy.states)
-        {
-            string nextState = mealy.transitions.at(inputSymbol)[find(mealy.states.begin(), mealy.states.end(), state) - mealy.states.begin()].state;
-            transitions.push_back(nextState);
-        }
-        moore.transitions[inputSymbol] = transitions;
-    }
+    
 
     return moore;
 }
 
 int main(int argc, char* argv[])
 {
-    /*MealyAutomata mealy = readMealy("1_mealy.csv");
-
-    MooreAutomata moore = convertMealyToMoore(mealy);
-
-    writeMoore("output.csv", moore);*/
-    
-    /*vector<string> RMS = findReachableStatesMealy(mealy, mealy.states[0]);
-
-    for (const auto& state : RMS) 
-    {
-        cout << state << " ";
-    }
-    cout << endl;*/
-
-
-    //MealyAutomata mealy = convertMooreToMealy(moore);
-
-    /*MooreAutomata moore = readMoore("1_moore.csv");
-
-    vector<string> RMS = findReachableStatesMoore(moore, moore.states[0]);
-
-    for (const auto& state : RMS)
-    {
-        cout << state << " ";
-    }
-    cout << endl*/;
-
-    //writeMealy("output.csv", mealy);
-
     if (argc != 4)
     {
         cout << "Usage: " << argv[0] << "<conversion-type> <in.csv> <out.csv>" << endl;
