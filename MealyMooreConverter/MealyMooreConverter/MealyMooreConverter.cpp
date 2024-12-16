@@ -31,25 +31,34 @@ vector<string> split(const string& s, char delimiter) {
 void readMealy(const std::string& inFileName, MealyAutomata& mealy)
 {
     ifstream input(inFileName);
-    string line;
 
+    string line;
     getline(input, line);
-    istringstream statesStream(line);
-    for (string state; getline(statesStream, state, ';'); )
+    stringstream ss(line);
+    string state;
+    getline(ss, state, ';');
+
+    while (getline(ss, state, ';'))
+    {
         mealy.states.push_back(state);
+    }
 
     while (getline(input, line))
     {
-        istringstream lineStream(line);
+        stringstream ss(line);
         string entry;
-        getline(lineStream, entry, ';');
+        getline(ss, entry, ';');
         mealy.entries.push_back(entry);
 
+        string transition;
         vector<pair<string, string>> transitions;
-        for (string transition; getline(lineStream, transition, ';'); )
+        for (const auto& state : mealy.states)
         {
+            getline(ss, transition, ';');
             size_t pos = transition.find('/');
-            transitions.emplace_back(transition.substr(0, pos), transition.substr(pos + 1));
+            string transitionState = transition.substr(0, pos);
+            string transitionOut = transition.substr(pos + 1, transition.size());
+            transitions.push_back(make_pair(transitionState, transitionOut));
         }
         mealy.transitions.push_back(transitions);
     }
@@ -146,51 +155,104 @@ void writeMoore(const string& outFileName, MooreAutomata moore)
     }
 }
 
+//unordered_set<size_t> findReachableStatesMealy(const MealyAutomata& mealy)
+//{
+//    unordered_set<string> reachableStates;
+//    queue<string> queue;
+//    queue.push(mealy.states[0]);
+//    reachableStates.insert(mealy.states[0]);
+//
+//    while (!queue.empty())
+//    {
+//        string currentState = queue.front();
+//        queue.pop();
+//
+//        for (size_t i = 0; i < mealy.states.size(); i++)
+//        {
+//            if (currentState == mealy.states[i])
+//            {
+//                for (size_t j = 0; j < mealy.entries.size(); j++)
+//                {
+//                    if (!reachableStates.count(mealy.transitions[j][i].first))
+//                    {
+//                        queue.push(mealy.transitions[j][i].first);
+//                        reachableStates.insert(mealy.transitions[j][i].first);
+//                    }
+//                }
+//                break;
+//            }
+//        }
+//    }
+//
+//    unordered_set<size_t> reachableStatesIndexes;
+//    for (const auto& reachableState : reachableStates)
+//    {
+//        for (size_t i = 0; i < mealy.states.size(); i++)
+//        {
+//            if (reachableState == mealy.states[i])
+//            {
+//                reachableStatesIndexes.insert(i);
+//                break;
+//            }
+//        }
+//    }
+//
+//    return reachableStatesIndexes;
+//}
+
 unordered_set<size_t> findReachableStatesMealy(const MealyAutomata& mealy)
 {
-    std::unordered_set<std::string> reachableStates;
-    std::queue<std::string> queue;
-    queue.push(mealy.states[0]);
+    unordered_set<string> reachableStates;
+    queue<string> queue;
+    queue.push(mealy.states[0]); // Начинаем с начального состояния
     reachableStates.insert(mealy.states[0]);
 
     while (!queue.empty())
     {
-        std::string currentState = queue.front();
+        string currentState = queue.front();
         queue.pop();
 
-        for (size_t i = 0; i < mealy.states.size(); i++)
+        // Ищем индекс текущего состояния
+        auto it = find(mealy.states.begin(), mealy.states.end(), currentState);
+        if (it == mealy.states.end())
         {
-            if (currentState == mealy.states[i])
+            // Если состояние не найдено, пропускаем
+            continue;
+        }
+
+        size_t currentIndex = distance(mealy.states.begin(), it);
+
+        // Проходим по всем входным сигналам
+        for (size_t j = 0; j < mealy.entries.size(); j++)
+        {
+            if (currentIndex >= mealy.transitions[j].size())
             {
-                for (size_t j = 0; j < mealy.entries.size(); j++)
-                {
-                    if (!reachableStates.count(mealy.transitions[j][i].first))
-                    {
-                        queue.push(mealy.transitions[j][i].first);
-                        reachableStates.insert(mealy.transitions[j][i].first);
-                    }
-                }
-                break;
+                // Если индекс выходит за пределы, пропускаем
+                continue;
+            }
+
+            const auto& transition = mealy.transitions[j][currentIndex];
+            if (!reachableStates.count(transition.first))
+            {
+                queue.push(transition.first);
+                reachableStates.insert(transition.first);
             }
         }
     }
 
-    std::unordered_set<size_t> reachableStatesIndexes;
+    // Преобразуем достижимые состояния в индексы
+    unordered_set<size_t> reachableStatesIndexes;
     for (const auto& reachableState : reachableStates)
     {
-        for (size_t i = 0; i < mealy.states.size(); i++)
+        auto it = find(mealy.states.begin(), mealy.states.end(), reachableState);
+        if (it != mealy.states.end())
         {
-            if (reachableState == mealy.states[i])
-            {
-                reachableStatesIndexes.insert(i);
-                break;
-            }
+            reachableStatesIndexes.insert(distance(mealy.states.begin(), it));
         }
     }
 
     return reachableStatesIndexes;
 }
-
 
 vector<pair<string, string>> extractMooreStates(const vector<vector<pair<string, string>>>& mealyTransitions, const std::string& startState)
 {
@@ -331,7 +393,7 @@ void convertMealyToMoore(const string& inFileName, const string outFileName)
 
 int main(int argc, char* argv[])
 {
-    if (argc != 4)
+    /*if (argc != 4)
     {
         cout << "Usage: " << argv[0] << " <conversion-type> <in.csv> <out.csv>" << endl;
         return 1;
@@ -339,7 +401,11 @@ int main(int argc, char* argv[])
 
     string convType = argv[1];
     string inputFileName = argv[2];
-    string outputFileName = argv[3];
+    string outputFileName = argv[3];*/
+
+    string inputFileName = "5_rev_mealy.csv";
+    string convType = "mealy-to-moore";
+    string outputFileName = "output.csv";
 
     if (convType == CONVERSION_TYPE_MEALY_TO_MOORE)
     {
