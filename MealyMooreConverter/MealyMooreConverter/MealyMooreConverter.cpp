@@ -393,7 +393,7 @@ void convertMealyToMoore(const string& inFileName, const string outFileName)
 
 int main(int argc, char* argv[])
 {
-    /*if (argc != 4)
+    if (argc != 4)
     {
         cout << "Usage: " << argv[0] << " <conversion-type> <in.csv> <out.csv>" << endl;
         return 1;
@@ -401,11 +401,7 @@ int main(int argc, char* argv[])
 
     string convType = argv[1];
     string inputFileName = argv[2];
-    string outputFileName = argv[3];*/
-
-    string inputFileName = "5_rev_mealy.csv";
-    string convType = "mealy-to-moore";
-    string outputFileName = "output.csv";
+    string outputFileName = argv[3];
 
     if (convType == CONVERSION_TYPE_MEALY_TO_MOORE)
     {
