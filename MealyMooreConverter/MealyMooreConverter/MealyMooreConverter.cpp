@@ -5,254 +5,141 @@ using namespace std;
 const string CONVERSION_TYPE_MEALY_TO_MOORE = "mealy-to-moore";
 const string CONVERSION_TYPE_MOORE_TO_MEALY = "moore-to-mealy";
 
-struct MealyState 
+struct Mealy
 {
-    string state;
-    string output;
+    std::vector<std::string> states;
+    std::vector<std::string> entries;
+    std::vector<std::vector<std::pair<std::string, std::string>>> transitions;
 };
 
-struct MealyAutomata 
+struct Moore
 {
-    vector<string> states;
-    vector<string> inputSymbols;
-    unordered_map<string, vector<MealyState>> transitions;
+    std::vector<std::pair<std::string, std::string>> states;
+    std::vector<std::string> entries;
+    std::vector<std::vector<std::string>> transitions;
 };
 
-struct MooreAutomata 
+void ReadMealy(const std::string& inFileName, Mealy& mealy)
 {
-    vector<string> states;
-    vector<string> inputSymbols;
-    unordered_map<string, string> outputs;
-    unordered_map<string, vector<string>> transitions;
-};
+    std::ifstream input(inFileName);
+    std::string line;
 
-MealyAutomata readMealy(const string& inputFile) 
-{
-    MealyAutomata mealy;
+    // Чтение состояний
+    std::getline(input, line);
+    std::istringstream statesStream(line);
+    for (std::string state; std::getline(statesStream, state, ';'); )
+        mealy.states.push_back(state);
 
-    ifstream file(inputFile);
-
-    if (!file.is_open()) 
+    // Чтение переходов
+    while (std::getline(input, line))
     {
-        cerr << "Error: Could not open file " << inputFile << endl;
-        return mealy;
+        std::istringstream lineStream(line);
+        std::string entry;
+        std::getline(lineStream, entry, ';');
+        mealy.entries.push_back(entry);
+
+        std::vector<std::pair<std::string, std::string>> transitions;
+        for (std::string transition; std::getline(lineStream, transition, ';'); )
+        {
+            size_t pos = transition.find('/');
+            transitions.emplace_back(transition.substr(0, pos), transition.substr(pos + 1));
+        }
+        mealy.transitions.push_back(transitions);
     }
-
-    string line;
-    bool firstLine = true; //считывание состояний
-
-    while (getline(file, line)) 
-    {
-        istringstream iss(line);
-        string token;
-        vector<string> tokens;
-
-        while (getline(iss, token, ';')) 
-        {
-            tokens.push_back(token);
-        }
-
-        if (firstLine) 
-        {
-            // Первая строка содержит состояния
-            for (size_t i = 1; i < tokens.size(); ++i) 
-            {
-                mealy.states.push_back(tokens[i]);
-            }
-
-            firstLine = false;
-        }
-        else 
-        {
-            // Последующие строки содержат переходы
-            string inputSymbol = tokens[0];
-
-            mealy.inputSymbols.push_back(inputSymbol);
-
-            for (size_t i = 1; i < tokens.size(); ++i) 
-            {
-                size_t slashPos = tokens[i].find('/');
-
-                if (slashPos != string::npos) 
-                {
-                    string state = tokens[i].substr(0, slashPos);
-                    string output = tokens[i].substr(slashPos + 1);
-                    mealy.transitions[inputSymbol].push_back({ state, output });
-                }
-            }
-        }
-    }
-
-    file.close();
-    return mealy;
 }
 
-void writeMealy(const string& outputFile, const MealyAutomata& mealy) 
+void WriteMealy(const std::string& outFileName, Mealy mealy)
 {
-    ofstream file(outputFile);
+    std::ofstream output(outFileName);
 
-    if (!file.is_open()) 
+    for (const auto& state : mealy.states)
     {
-        cerr << "Error: Could not open file " << outputFile << endl;
-        return;
+        output << ";" << state;
     }
+    output << std::endl;
 
-    // Записываем состояния
-    file << ";";
-    for (size_t i = 0; i < mealy.states.size(); i++)  
+    for (size_t i = 0; i < mealy.transitions.size(); i++)
     {
-        file << mealy.states[i];
-        if (i < mealy.states.size() - 1)
+        output << mealy.entries[i] << ";";
+
+        for (size_t j = 0; j < mealy.transitions[i].size(); j++)
         {
-            file << ";";
-        }
-    }
+            output << mealy.transitions[i][j].first
+                << "/" << mealy.transitions[i][j].second;
 
-    file << endl;
-
-    // Записываем переходы
-    for (const auto& inputSymbol : mealy.inputSymbols) 
-    {
-        file << inputSymbol << ";";
-
-        for (size_t i = 0; i < mealy.transitions.at(inputSymbol).size(); i++) 
-        {
-            const auto& transition = mealy.transitions.at(inputSymbol)[i];
-
-            file << transition.state << "/" << transition.output;
-
-            if (i < mealy.transitions.at(inputSymbol).size() - 1) 
+            if (j != mealy.transitions[i].size() - 1)
             {
-                file << ";";
+                output << ";";
             }
         }
-        file << endl;
+        output << std::endl;
     }
-
-    file.close();
 }
 
-MooreAutomata readMoore(const string& inputFile)
+void ReadMoore(const std::string& inFileName, Moore& moore)
 {
-    MooreAutomata moore;
-    ifstream file(inputFile);
-    if (!file.is_open()) 
+    std::ifstream input(inFileName);
+    std::string line;
+
+    std::getline(input, line);
+    std::istringstream ssOut(line);
+    std::getline(input, line);
+    std::istringstream ssState(line);
+
+    std::string out, state;
+    while (std::getline(ssOut, out, ';') && std::getline(ssState, state, ';'))
     {
-        cerr << "Error: Could not open file " << inputFile << endl;
-        return moore;
+        moore.states.emplace_back(state, out);
     }
 
-    string line;
-    bool firstLine = true;
-    bool secondLine = false;
-    vector<string> outputs;
-
-    while (getline(file, line))
+    // Чтение переходов
+    while (std::getline(input, line))
     {
-        istringstream iss(line);
-        string token;
-        vector<string> tokens;
+        std::istringstream ss(line);
+        std::string entry;
+        std::getline(ss, entry, ';');
+        moore.entries.push_back(entry);
 
-        while (getline(iss, token, ';')) 
+        std::vector<std::string> transitions;
+        for (std::string transition; std::getline(ss, transition, ';'); )
         {
-            tokens.push_back(token);
+            transitions.push_back(transition);
         }
-
-        if (firstLine) {
-            // Первая строка содержит выходные символы
-            for (size_t i = 1; i < tokens.size(); ++i) 
-            {
-                outputs.push_back(tokens[i]);
-            }
-            firstLine = false;
-            secondLine = true;
-        }
-        else if (secondLine) 
-        {
-            // Вторая строка содержит состояния
-            for (size_t i = 1; i < tokens.size(); ++i) 
-            {
-                string state = tokens[i];
-                moore.states.push_back(state);
-                moore.outputs[state] = outputs[i - 1]; // Сопоставляем состояние с выходным символом
-            }
-            secondLine = false;
-        }
-        else
-        {
-            // Последующие строки содержат переходы
-            string inputSymbol = tokens[0];
-            moore.inputSymbols.push_back(inputSymbol);
-            for (size_t i = 1; i < tokens.size(); ++i) 
-            {
-                moore.transitions[inputSymbol].push_back(tokens[i]);
-            }
-        }
+        moore.transitions.push_back(transitions);
     }
-
-    file.close();
-    return moore;
 }
 
-void writeMoore(const string& outputFile, const MooreAutomata& moore) 
+void WriteMoore(const std::string& outFileName, Moore moore)
 {
-    ofstream file(outputFile);
+    std::ofstream output(outFileName);
 
-    if (!file.is_open()) 
+    for (const auto& state : moore.states)
     {
-        cerr << "Error: Could not open file " << outputFile << endl;
-        return;
+        output << ";" << state.second;
     }
+    output << std::endl;
 
-    // Записываем выходные символы
-    file << ";";
-
-    for (size_t i = 0; i < moore.states.size(); ++i) 
+    for (const auto& state : moore.states)
     {
-        file << moore.outputs.at(moore.states[i]);
-
-        if (i < moore.states.size() - 1) 
-        {
-            file << ";";
-        }
+        output << ";" << state.first;
     }
-    file << endl;
+    output << std::endl;
 
-    // Записываем состояния
-    file << ";";
-
-    for (size_t i = 0; i < moore.states.size(); ++i) 
+    for (size_t i = 0; i < moore.transitions.size(); i++)
     {
-        file << moore.states[i];
-
-        if (i < moore.states.size() - 1) 
+        output << moore.entries[i] << ";";
+        for (size_t j = 0; j < moore.transitions[i].size(); j++)
         {
-            file << ";";
-        }
-    }
-
-    file << endl;
-
-    // Записываем переходы
-    for (const auto& inputSymbol : moore.inputSymbols) 
-    {
-        file << inputSymbol << ";";
-
-        for (size_t i = 0; i < moore.transitions.at(inputSymbol).size(); ++i) 
-        {
-            file << moore.transitions.at(inputSymbol)[i];
-
-            if (i < moore.transitions.at(inputSymbol).size() - 1) 
+            output << moore.transitions[i][j];
+            if (j != moore.transitions[i].size() - 1)
             {
-                file << ";";
+                output << ";";
             }
         }
-
-        file << endl;
+        output << std::endl;
     }
-
-    file.close();
 }
+
 
 vector<string> findReachableStatesMoore(const MooreAutomata& moore, const string& startState)
 {
@@ -271,11 +158,16 @@ vector<string> findReachableStatesMoore(const MooreAutomata& moore, const string
 
         for (const auto& inputSymbol : moore.inputSymbols)
         {
-            string nextState = moore.transitions.at(inputSymbol)[find(moore.states.begin(), moore.states.end(), currState) - moore.states.begin()];
-            if (visited.find(nextState) == visited.end())
+            auto it = find(moore.states.begin(), moore.states.end(), currState);
+            if (it != moore.states.end())
             {
-                visited.insert(nextState);
-                queue.push(nextState);
+                size_t index = it - moore.states.begin();
+                string nextState = moore.transitions.at(inputSymbol)[index];
+                if (visited.find(nextState) == visited.end())
+                {
+                    visited.insert(nextState);
+                    queue.push(nextState);
+                }
             }
         }
     }
@@ -283,7 +175,7 @@ vector<string> findReachableStatesMoore(const MooreAutomata& moore, const string
     return reachableStates;
 }
 
-vector<string> findReachableStatesMealy(const MealyAutomata& mealy, const string& startState) 
+vector<string> findReachableStatesMealy(const MealyAutomata& mealy, const string& startState)
 {
     vector<string> reachableStates;
     unordered_set<string> visited;
@@ -298,13 +190,18 @@ vector<string> findReachableStatesMealy(const MealyAutomata& mealy, const string
         queue.pop();
         reachableStates.push_back(currentState);
 
-        for (const auto& inputSymbol : mealy.inputSymbols) 
+        for (const auto& inputSymbol : mealy.inputSymbols)
         {
-            string nextState = mealy.transitions.at(inputSymbol)[find(mealy.states.begin(), mealy.states.end(), currentState) - mealy.states.begin()].state;
-            if (visited.find(nextState) == visited.end()) 
+            auto it = find(mealy.states.begin(), mealy.states.end(), currentState);
+            if (it != mealy.states.end())
             {
-                visited.insert(nextState);
-                queue.push(nextState);
+                size_t index = it - mealy.states.begin();
+                string nextState = mealy.transitions.at(inputSymbol)[index].state;
+                if (visited.find(nextState) == visited.end())
+                {
+                    visited.insert(nextState);
+                    queue.push(nextState);
+                }
             }
         }
     }
@@ -317,7 +214,7 @@ MealyAutomata convertMooreToMealy(MooreAutomata moore)
     MealyAutomata mealy;
     mealy.inputSymbols = moore.inputSymbols;
     mealy.states = moore.states;
-    
+
     for (const auto& inputSymbol : moore.inputSymbols)
     {
         for (size_t i = 0; i < moore.transitions[inputSymbol].size(); i++)
@@ -331,7 +228,7 @@ MealyAutomata convertMooreToMealy(MooreAutomata moore)
     return mealy;
 }
 
-vector<::pair<string, string>> extractMooreStates(const unordered_map<string, vector<MealyState>>& mealyTransitions, const std::string& startState)
+vector<pair<string, string>> extractMooreStates(const unordered_map<string, vector<MealyState>>& mealyTransitions, const std::string& startState)
 {
     set<pair<string, string>> statesForMoore;
     for (const auto& transitionForOneEntry : mealyTransitions)
@@ -365,42 +262,61 @@ MooreAutomata convertMealyToMoore(MealyAutomata mealy)
 {
     MooreAutomata moore;
 
+    // Step 1: Find reachable states
     vector<string> reachableStates = findReachableStatesMealy(mealy, mealy.states[0]);
-    MealyAutomata newMealy;
-    newMealy.inputSymbols = mealy.inputSymbols;
-    newMealy.transitions = unordered_map<string, vector<MealyState>>();
+
+    // Step 2: Filter Mealy automaton to include only reachable states
+    MealyAutomata filteredMealy;
+    filteredMealy.inputSymbols = mealy.inputSymbols;
+    filteredMealy.transitions = unordered_map<string, vector<MealyState>>();
 
     for (const auto& state : reachableStates)
     {
-        size_t index = find(mealy.states.begin(), mealy.states.end(), state) - mealy.states.begin();
-        newMealy.states.push_back(state);
-        for (const auto& inSymbol : newMealy.inputSymbols)
+        auto it = find(mealy.states.begin(), mealy.states.end(), state);
+        if (it != mealy.states.end())
         {
-            newMealy.transitions[inSymbol].push_back(mealy.transitions[inSymbol][index]);
+            size_t index = it - mealy.states.begin();
+            filteredMealy.states.push_back(state);
+            for (const auto& inSymbol : filteredMealy.inputSymbols)
+            {
+                filteredMealy.transitions[inSymbol].push_back(mealy.transitions[inSymbol][index]);
+            }
         }
     }
 
-    auto statesForMoore = extractMooreStates(newMealy.transitions, newMealy.states[0]);
+    // Step 3: Extract Moore states
+    auto statesForMoore = extractMooreStates(filteredMealy.transitions, filteredMealy.states[0]);
 
+    // Step 4: Create states for Moore automaton
     for (size_t i = 0; i < statesForMoore.size(); i++)
     {
         moore.states.push_back("q" + to_string(i));
         moore.outputs[moore.states.back()] = statesForMoore[i].second;
     }
 
-    moore.inputSymbols = newMealy.inputSymbols;
+    // Step 5: Copy input symbols
+    moore.inputSymbols = filteredMealy.inputSymbols;
 
-    for (const auto& inputSymbol : newMealy.inputSymbols)
+    // Step 6: Create transitions for Moore automaton
+    for (const auto& inputSymbol : filteredMealy.inputSymbols)
     {
         vector<string> transitions;
 
-        for (const auto& state : newMealy.states)
+        for (const auto& state : filteredMealy.states)
         {
-            size_t index = find(newMealy.states.begin(), newMealy.states.end(), state) - newMealy.states.begin();
-            string nextState = newMealy.transitions[inputSymbol][index].state;
-            string nextOutput = newMealy.transitions[inputSymbol][index].output;
-            string nextMooreState = moore.states[find(statesForMoore.begin(), statesForMoore.end(), make_pair(nextState, nextOutput)) - statesForMoore.begin()];
-            transitions.push_back(nextMooreState);
+            auto it = find(filteredMealy.states.begin(), filteredMealy.states.end(), state);
+            if (it != filteredMealy.states.end())
+            {
+                size_t index = it - filteredMealy.states.begin();
+                string nextState = filteredMealy.transitions[inputSymbol][index].state;
+                string nextOutput = filteredMealy.transitions[inputSymbol][index].output;
+                auto itMoore = find(statesForMoore.begin(), statesForMoore.end(), make_pair(nextState, nextOutput));
+                if (itMoore != statesForMoore.end())
+                {
+                    size_t indexMoore = itMoore - statesForMoore.begin();
+                    transitions.push_back(moore.states[indexMoore]);
+                }
+            }
         }
 
         moore.transitions[inputSymbol] = transitions;
@@ -413,7 +329,7 @@ int main(int argc, char* argv[])
 {
     if (argc != 4)
     {
-        cout << "Usage: " << argv[0] << "<conversion-type> <in.csv> <out.csv>" << endl;
+        cout << "Usage: " << argv[0] << " <conversion-type> <in.csv> <out.csv>" << endl;
         return 1;
     }
 
