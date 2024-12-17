@@ -11,6 +11,19 @@ using namespace std;
 
 const string CONVERSION_TYPE_MEALY_TO_MOORE = "mealy-to-moore";
 
+struct TransMealy
+{
+    string inputSymbol;
+    string nextPos;
+    string outputSymbol;
+};
+
+struct TransMoore
+{
+    string inputSymbol;
+    string nextPos;
+};
+
 struct MealyAutomata
 {
     vector<string> states;
@@ -166,7 +179,7 @@ unordered_set<size_t> findReachableStatesMealy(const MealyAutomata& mealy)
 {
     unordered_set<string> reachableStates;
     queue<string> queue;
-    queue.push(mealy.states[0]);
+    queue.push(mealy.states[0]); // Начинаем с начального состояния
     reachableStates.insert(mealy.states[0]);
 
     while (!queue.empty())
@@ -174,33 +187,42 @@ unordered_set<size_t> findReachableStatesMealy(const MealyAutomata& mealy)
         string currentState = queue.front();
         queue.pop();
 
-        for (size_t i = 0; i < mealy.states.size(); i++)
+        // Ищем индекс текущего состояния
+        auto it = find(mealy.states.begin(), mealy.states.end(), currentState);
+        if (it == mealy.states.end())
         {
-            if (currentState == mealy.states[i])
+            // Если состояние не найдено, пропускаем
+            continue;
+        }
+
+        size_t currentIndex = distance(mealy.states.begin(), it);
+
+        // Проходим по всем входным сигналам
+        for (size_t j = 0; j < mealy.entries.size(); j++)
+        {
+            if (currentIndex >= mealy.transitions[j].size())
             {
-                for (size_t j = 0; j < mealy.entries.size(); j++)
-                {
-                    if (!reachableStates.count(mealy.transitions[j][i].first))
-                    {
-                        queue.push(mealy.transitions[j][i].first);
-                        reachableStates.insert(mealy.transitions[j][i].first);
-                    }
-                }
-                break;
+                // Если индекс выходит за пределы, пропускаем
+                continue;
+            }
+
+            const auto& transition = mealy.transitions[j][currentIndex];
+            if (!reachableStates.count(transition.first))
+            {
+                queue.push(transition.first);
+                reachableStates.insert(transition.first);
             }
         }
     }
 
+    // Преобразуем достижимые состояния в индексы
     unordered_set<size_t> reachableStatesIndexes;
     for (const auto& reachableState : reachableStates)
     {
-        for (size_t i = 0; i < mealy.states.size(); i++)
+        auto it = find(mealy.states.begin(), mealy.states.end(), reachableState);
+        if (it != mealy.states.end())
         {
-            if (reachableState == mealy.states[i])
-            {
-                reachableStatesIndexes.insert(i);
-                break;
-            }
+            reachableStatesIndexes.insert(distance(mealy.states.begin(), it));
         }
     }
 
