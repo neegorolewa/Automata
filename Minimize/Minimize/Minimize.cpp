@@ -13,11 +13,13 @@
 
 using namespace std;
 
-vector<string> split(const string& s, char delimiter) {
+vector<string> split(const string& s, char delimiter) 
+{
     vector<string> tokens;
     string token;
     istringstream tokenStream(s);
-    while (getline(tokenStream, token, delimiter)) {
+    while (getline(tokenStream, token, delimiter)) 
+    {
         tokens.push_back(token);
     }
     return tokens;
@@ -50,7 +52,7 @@ struct MooreState
     vector<TransMoore> transitions;
 };
 
-vector<MealyState> findReachableStates(const vector<MealyState>& mealyStates)
+vector<MealyState> findMealyReachableStates(const vector<MealyState>& mealyStates)
 {
     if (mealyStates.empty()) return {};
 
@@ -463,7 +465,6 @@ vector<MealyState> ReadMealy(vector<MealyState>& positions, ifstream& file)
             trans.inputSym = input_sym;
             trans.nextPos = tRow[0];
             trans.outSym = tRow[1];
-            //cout << tRow[0] << " " << tRow[1] << "\n";
             positions[i].transitions.push_back(trans);
         }
     };
@@ -511,7 +512,8 @@ vector<MooreState> ReadMoore(vector<MooreState>& positions, ifstream& file)
 }
 
 
-void WriteMealy(vector<MealyState>& mealyAutomaton, ofstream& outFile) {
+void WriteMealy(vector<MealyState>& mealyAutomaton, ofstream& outFile) 
+{
     if (outFile.is_open()) 
     {
         for (const auto& state : mealyAutomaton) 
@@ -605,8 +607,8 @@ int main(int argc, char* argv[])
     {
         vector<MealyState> mealyStates;
         mealyStates = ReadMealy(mealyStates, file);
-        vector<MealyState> reachableStates = findReachableStates(mealyStates);
-        vector<MealyState> minimize = mealyMin(mealyStates);
+        vector<MealyState> reachableStates = findMealyReachableStates(mealyStates);
+        vector<MealyState> minimize = mealyMin(reachableStates);
         WriteMealy(minimize, outFile);
     }
     else
