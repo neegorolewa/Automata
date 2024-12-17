@@ -2,41 +2,16 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
-#include <unordered_set>
-#include <queue>
+#include <string>
 #include <unordered_map>
+#include <iostream>
+#include <map>
+#include <set>
+#include <unordered_set>
 #include <algorithm>
+#include <queue>
 
 using namespace std;
-
-const string CONVERSION_TYPE_MEALY_TO_MOORE = "mealy-to-moore";
-
-struct TransMealy
-{
-    string inputSymbol;
-    string nextPos;
-    string outputSymbol;
-};
-
-struct TransMoore
-{
-    string inputSymbol;
-    string nextPos;
-};
-
-struct MealyAutomata
-{
-    vector<string> states;
-    vector<string> entries;
-    vector<vector<pair<string, string>>> transitions;
-};
-
-struct MooreAutomata
-{
-    vector<pair<string, string>> states;
-    vector<string> entries;
-    vector<vector<string>> transitions;
-};
 
 vector<string> split(const string& s, char delimiter) {
     vector<string> tokens;
@@ -48,209 +23,69 @@ vector<string> split(const string& s, char delimiter) {
     return tokens;
 }
 
-void readMealy(const std::string& inFileName, MealyAutomata& mealy)
+struct Trans
 {
-    ifstream input(inFileName);
+    string inputSym;
+    string nextPos; 
+    string outSym; 
+};
 
-    string line;
-    getline(input, line);
-    stringstream ss(line);
+struct TransMoore
+{
+    string inputSym;
+    string nextPos; 
+};
+
+struct MealyState
+{
+    string curr;
+    vector<Trans> transitions;
+};
+
+struct MooreState
+{
     string state;
-    getline(ss, state, ';');
+    string newState;
+    string output;
+    vector<TransMoore> transitions;
+};
 
-    while (getline(ss, state, ';'))
-    {
-        mealy.states.push_back(state);
-    }
-
-    while (getline(input, line))
-    {
-        stringstream ss(line);
-        string entry;
-        getline(ss, entry, ';');
-        mealy.entries.push_back(entry);
-
-        string transition;
-        vector<pair<string, string>> transitions;
-        for (const auto& state : mealy.states)
-        {
-            getline(ss, transition, ';');
-            size_t pos = transition.find('/');
-            string transitionState = transition.substr(0, pos);
-            string transitionOut = transition.substr(pos + 1, transition.size());
-            transitions.push_back(make_pair(transitionState, transitionOut));
-        }
-        mealy.transitions.push_back(transitions);
-    }
-}
-
-void writeMealy(const string& outFileName, MealyAutomata mealy)
+vector<MealyState> findReachableStates(const vector<MealyState>& mealyStates)
 {
-    ofstream output(outFileName);
+    if (mealyStates.empty()) return {};
 
-    for (const auto& state : mealy.states)
+    unordered_set<string> visited;
+    queue<string> toVisit;
+    vector<MealyState> reachableStates;
+
+    visited.insert(mealyStates[0].curr);
+    toVisit.push(mealyStates[0].curr);
+    reachableStates.push_back(mealyStates[0]);
+
+    while (!toVisit.empty())
     {
-        output << ";" << state;
-    }
-    output << std::endl;
+        string currentState = toVisit.front();
+        toVisit.pop();
 
-    for (size_t i = 0; i < mealy.transitions.size(); i++)
-    {
-        output << mealy.entries[i] << ";";
-
-        for (size_t j = 0; j < mealy.transitions[i].size(); j++)
+        for (const auto& state : mealyStates)
         {
-            output << mealy.transitions[i][j].first
-                << "/" << mealy.transitions[i][j].second;
-
-            if (j != mealy.transitions[i].size() - 1)
+            if (state.curr == currentState)
             {
-                output << ";";
-            }
-        }
-        output << std::endl;
-    }
-}
-
-void readMoore(const std::string& inFileName, MooreAutomata& moore)
-{
-    ifstream input(inFileName);
-    string line;
-
-    getline(input, line);
-    istringstream ssOut(line);
-    getline(input, line);
-    istringstream ssState(line);
-
-    string out, state;
-    while (getline(ssOut, out, ';') && getline(ssState, state, ';'))
-    {
-        moore.states.emplace_back(state, out);
-    }
-
-    while (getline(input, line))
-    {
-        istringstream ss(line);
-        string entry;
-        getline(ss, entry, ';');
-        moore.entries.push_back(entry);
-
-        vector<string> transitions;
-        for (string transition; getline(ss, transition, ';'); )
-        {
-            transitions.push_back(transition);
-        }
-        moore.transitions.push_back(transitions);
-    }
-}
-
-void writeMoore(const string& outFileName, MooreAutomata moore)
-{
-    ofstream output(outFileName);
-
-    for (const auto& state : moore.states)
-    {
-        output << ";" << state.second;
-    }
-    output << std::endl;
-
-    for (const auto& state : moore.states)
-    {
-        output << ";" << state.first;
-    }
-    output << std::endl;
-
-    for (size_t i = 0; i < moore.transitions.size(); i++)
-    {
-        output << moore.entries[i] << ";";
-        for (size_t j = 0; j < moore.transitions[i].size(); j++)
-        {
-            output << moore.transitions[i][j];
-            if (j != moore.transitions[i].size() - 1)
-            {
-                output << ";";
-            }
-        }
-        output << std::endl;
-    }
-}
-
-unordered_set<size_t> findReachableStatesMealy(const MealyAutomata& mealy)
-{
-    unordered_set<string> reachableStates;
-    queue<string> queue;
-    queue.push(mealy.states[0]); // Начинаем с начального состояния
-    reachableStates.insert(mealy.states[0]);
-
-    while (!queue.empty())
-    {
-        string currentState = queue.front();
-        queue.pop();
-
-        // Ищем индекс текущего состояния
-        auto it = find(mealy.states.begin(), mealy.states.end(), currentState);
-        if (it == mealy.states.end())
-        {
-            // Если состояние не найдено, пропускаем
-            continue;
-        }
-
-        size_t currentIndex = distance(mealy.states.begin(), it);
-
-        // Проходим по всем входным сигналам
-        for (size_t j = 0; j < mealy.entries.size(); j++)
-        {
-            if (currentIndex >= mealy.transitions[j].size())
-            {
-                // Если индекс выходит за пределы, пропускаем
-                continue;
-            }
-
-            const auto& transition = mealy.transitions[j][currentIndex];
-            if (!reachableStates.count(transition.first))
-            {
-                queue.push(transition.first);
-                reachableStates.insert(transition.first);
-            }
-        }
-    }
-
-    // Преобразуем достижимые состояния в индексы
-    unordered_set<size_t> reachableStatesIndexes;
-    for (const auto& reachableState : reachableStates)
-    {
-        auto it = find(mealy.states.begin(), mealy.states.end(), reachableState);
-        if (it != mealy.states.end())
-        {
-            reachableStatesIndexes.insert(distance(mealy.states.begin(), it));
-        }
-    }
-
-    return reachableStatesIndexes;
-}
-
-unordered_set<size_t> findReachableStatesMoore(const MooreAutomata& moore)
-{
-    unordered_set<string> reachableStates;
-    queue<string> queue;
-    queue.push(moore.states[0].first);
-    reachableStates.insert(moore.states[0].first);
-
-    while (!queue.empty())
-    {
-        string currentState = queue.front();
-        queue.pop();
-
-        for (size_t i = 0; i < moore.states.size(); i++)
-        {
-            if (currentState == moore.states[i].first)
-            {
-                for (size_t j = 0; j < moore.entries.size(); j++)
+                for (const auto& transition : state.transitions)
                 {
-                    if (!reachableStates.count(moore.transitions[j][i]))
+                    if (visited.find(transition.nextPos) == visited.end())
                     {
-                        queue.push(moore.transitions[j][i]);
-                        reachableStates.insert(moore.transitions[j][i]);
+                        visited.insert(transition.nextPos);
+                        toVisit.push(transition.nextPos);
+
+                        for (const auto& nextState : mealyStates)
+                        {
+                            if (nextState.curr == transition.nextPos)
+                            {
+                                reachableStates.push_back(nextState);
+                                break;
+                            }
+                        }
                     }
                 }
                 break;
@@ -258,67 +93,492 @@ unordered_set<size_t> findReachableStatesMoore(const MooreAutomata& moore)
         }
     }
 
-    unordered_set<size_t> reachableStatesIndexes;
-    for (const auto& reachableState : reachableStates)
+    return reachableStates;
+}
+
+vector<MooreState> findMooreReachableStates(const vector<MooreState>& mooreStates)
+{
+    if (mooreStates.empty()) return {};
+
+    unordered_set<string> visited;
+    queue<string> toVisit;
+    vector<MooreState> reachableStates;
+
+    visited.insert(mooreStates[0].state);
+    toVisit.push(mooreStates[0].state);
+    reachableStates.push_back(mooreStates[0]);
+
+    while (!toVisit.empty())
     {
-        for (size_t i = 0; i < moore.states.size(); i++)
+        string currentState = toVisit.front();
+        toVisit.pop();
+
+        for (const auto& state : mooreStates)
         {
-            if (reachableState == moore.states[i].first)
+            if (state.state == currentState)
             {
-                reachableStatesIndexes.insert(i);
+                for (const auto& transition : state.transitions)
+                {
+                    if (visited.find(transition.nextPos) == visited.end())
+                    {
+                        visited.insert(transition.nextPos);
+                        toVisit.push(transition.nextPos);
+
+                        for (const auto& nextState : mooreStates)
+                        {
+                            if (nextState.state == transition.nextPos)
+                            {
+                                reachableStates.push_back(nextState);
+                                break;
+                            }
+                        }
+                    }
+                }
                 break;
             }
         }
     }
 
-    return reachableStatesIndexes;
+    return reachableStates;
 }
 
-void minimizeMealy(const string& inFileName, const string& outFileName)
+
+vector<MealyState> mealyMin(const vector<MealyState>& mealyAutomaton)
 {
-    MealyAutomata mealy;
-    readMealy(inFileName, mealy);
+    map<string, string> newStateMap; 
+    set<vector<string>> vecOutSet;
+    map<vector<string>, string> vecOutNewStMap; 
+    vector<MealyState> newMealyAutomaton;
+    map <string, vector<string>> StateInGroup; 
 
-    unordered_set<size_t> reachableStates = findReachableStatesMealy(mealy);
+    char ch = 'A';
+    int stateCounter = 0;
 
-    MealyAutomata minimizedMealy;
-    minimizedMealy.entries = mealy.entries;
-    minimizedMealy.transitions = vector<vector<pair<string, string>>>(minimizedMealy.entries.size());
-
-    for (const auto& index : reachableStates)
+    for (const auto& state : mealyAutomaton)
     {
-        minimizedMealy.states.push_back(mealy.states[index]);
-        for (size_t i = 0; i < minimizedMealy.entries.size(); i++)
+        vector<string> outVector;
+        for (const auto& transition : state.transitions)
         {
-            minimizedMealy.transitions[i].push_back(mealy.transitions[i][index]);
+            outVector.push_back(transition.outSym);
+        }
+
+        if (vecOutSet.insert(outVector).second)
+        {
+            string newMinStateName = ch + to_string(stateCounter);
+            vecOutNewStMap[outVector] = newMinStateName;  
+            newStateMap[state.curr] = newMinStateName;
+            stateCounter++;
+        }
+        else
+        {
+            newStateMap[state.curr] = vecOutNewStMap[outVector];
+        }
+
+    }
+
+    map <string, vector<MealyState>> NewMealyInGroup;
+
+    for (const auto& state : mealyAutomaton)
+    {
+        MealyState tempState;
+        vector<Trans> tempVec;
+        for (const auto& transition : state.transitions)
+        {
+            Trans newTrans;
+            newTrans.inputSym = transition.inputSym;
+            newTrans.nextPos = newStateMap[transition.nextPos];
+
+            newTrans.outSym = transition.outSym;
+            tempVec.push_back(newTrans);
+        }
+        tempState.curr = state.curr; 
+        tempState.transitions = tempVec;
+        NewMealyInGroup[newStateMap[tempState.curr]].push_back(tempState);
+
+    }
+
+    auto prevSize = vecOutSet.size();
+    size_t currSize = 0;
+    bool equal = 0;
+    while (prevSize != currSize)
+    {
+        ch++;
+        int i = 0;
+        map<string, string> tempNewStateMap; 
+        map <string, vector<MealyState>> tempNewMealyInGroup; 
+
+        for (const auto& group : NewMealyInGroup)
+        {
+            map<vector<string>, string> vecNextNewStMap; 
+            set<vector<string>> vecTransSet;
+            for (const auto& state : group.second)
+            {
+                vector<string> transVector;
+                for (const auto& transition : state.transitions)
+                {
+                    transVector.push_back(transition.nextPos);
+
+                }
+                if (vecTransSet.insert(transVector).second) 
+                {
+                    string newMinStateName = ch + to_string(i);
+                    vecNextNewStMap[transVector] = newMinStateName; 
+                    tempNewStateMap[state.curr] = newMinStateName;
+                    i++;
+                }
+                else
+                {
+                    tempNewStateMap[state.curr] = vecNextNewStMap[transVector];
+                }
+                currSize += vecTransSet.size();
+            }
+        }
+        for (const auto& state : mealyAutomaton)
+        {
+            MealyState tempState;
+            vector<Trans> tempVec;
+            for (const auto& transition : state.transitions)
+            {
+                Trans newTrans;
+                newTrans.inputSym = transition.inputSym;
+                newTrans.nextPos = tempNewStateMap[transition.nextPos];
+                newTrans.outSym = transition.outSym;
+                tempVec.push_back(newTrans);
+            }
+            tempState.curr = state.curr;
+            tempState.transitions = tempVec;
+            tempNewMealyInGroup[tempNewStateMap[tempState.curr]].push_back(tempState);
+        }
+
+
+        NewMealyInGroup = tempNewMealyInGroup;
+        newStateMap = tempNewStateMap;
+
+        if (prevSize == currSize)
+        {
+            break;
+        }
+        else
+        {
+            prevSize = currSize;
+            currSize = 0;
+        }
+
+
+    }
+
+    vector<MealyState> tempMealy;
+
+    for (const auto& group : NewMealyInGroup)
+    {
+        vector<Trans> tempVec;
+        MealyState tempState = group.second[0];
+
+        for (const auto& trans : tempState.transitions)
+        {
+            Trans newTrans;
+            newTrans.inputSym = trans.inputSym;
+            newTrans.nextPos = trans.nextPos;
+            newTrans.outSym = trans.outSym;
+            tempVec.push_back(newTrans);
+        }
+
+        tempState.curr = group.first;
+        tempState.transitions = tempVec;
+        NewMealyInGroup[newStateMap[tempState.curr]].push_back(tempState);
+        tempMealy.push_back(tempState);
+    }
+
+    return tempMealy;
+
+
+}
+
+vector<MooreState> mooreMin(const vector<MooreState>& mooreAutomaton)
+{
+    map<string, string> newStateMap;
+    set<string> outSet;
+    map<string, string> outNewStMap;
+    vector<MealyState> newMealyAutomaton;
+    map <string, vector<string>> StateInGroup; 
+
+    char ch = 'A';
+    int stateCounter = 0;
+
+    for (const auto& state : mooreAutomaton)
+    {
+        vector<string> outVector;
+
+        if (outSet.insert(state.output).second)
+        {
+            string newMinStateName = ch + to_string(stateCounter);
+            outNewStMap[state.output] = newMinStateName; 
+            newStateMap[state.state] = newMinStateName;
+            stateCounter++;
+        }
+        else
+        {
+            newStateMap[state.state] = outNewStMap[state.output];
         }
     }
 
-    writeMealy(outFileName, minimizedMealy);
-}
 
-void minimizeMoore(const string& inFileName, const string& outFileName)
-{
-    MooreAutomata moore;
-    readMoore(inFileName, moore);
+    map <string, vector<MooreState>> NewMooreInGroup; 
 
-    unordered_set<size_t> reachableStates = findReachableStatesMoore(moore);
-
-    MooreAutomata minimizedMoore;
-    minimizedMoore.entries = moore.entries;
-    minimizedMoore.transitions = vector<vector<string>>(minimizedMoore.entries.size());
-
-    for (const auto& index : reachableStates)
+    for (const auto& state : mooreAutomaton)
     {
-        minimizedMoore.states.push_back(moore.states[index]);
-        for (size_t i = 0; i < minimizedMoore.entries.size(); i++)
+        MooreState tempState;
+        vector<TransMoore> tempVec;
+        for (const auto& transition : state.transitions)
         {
-            minimizedMoore.transitions[i].push_back(moore.transitions[i][index]);
+            TransMoore newTrans;
+            newTrans.inputSym = transition.inputSym;
+            newTrans.nextPos = newStateMap[transition.nextPos];
+            tempVec.push_back(newTrans);
         }
+        tempState.output = state.output;
+        tempState.state = state.state;
+        tempState.transitions = tempVec;
+        NewMooreInGroup[newStateMap[tempState.state]].push_back(tempState);
+
     }
 
-    writeMoore(outFileName, minimizedMoore);
+    auto prevSize = outSet.size();
+    size_t currSize = 0;
+    bool equal = 0;
+    while (prevSize != currSize)
+    {
+        ch++;
+        int i = 0;
+        currSize = 0;
+        map<string, string> tempNewStateMap; 
+        map <string, vector<MooreState>> tempNewMooreInGroup; 
+
+        for (const auto& group : NewMooreInGroup)
+        {
+            map<vector<string>, string> vecNextNewStMap; 
+            set<vector<string>> vecTransSet;
+            for (const auto& state : group.second)
+            {
+                vector<string> transVector;
+                for (const auto& transition : state.transitions)
+                {
+                    transVector.push_back(transition.nextPos);
+                }
+                if (vecTransSet.insert(transVector).second) 
+                {
+                    string newMinStateName = ch + to_string(i);
+                    vecNextNewStMap[transVector] = newMinStateName;
+                    tempNewStateMap[state.state] = newMinStateName;
+                    i++;
+                }
+                else
+                {
+                    tempNewStateMap[state.state] = vecNextNewStMap[transVector];
+                }
+                currSize += vecTransSet.size();
+            }
+        }
+        for (const auto& state : mooreAutomaton)
+        {
+            MooreState tempState;
+            vector<TransMoore> tempVec;
+            for (const auto& transition : state.transitions)
+            {
+                TransMoore newTrans;
+                newTrans.inputSym = transition.inputSym;
+                newTrans.nextPos = tempNewStateMap[transition.nextPos];
+                tempVec.push_back(newTrans);
+            }
+            tempState.state = state.state; 
+            tempState.output = state.output;
+            tempState.transitions = tempVec;
+            tempNewMooreInGroup[tempNewStateMap[tempState.state]].push_back(tempState);
+        }
+
+        NewMooreInGroup = tempNewMooreInGroup;
+        newStateMap = tempNewStateMap;
+
+        if (prevSize == currSize)
+        {
+            break;
+        }
+        else
+        {
+            prevSize = currSize;
+            currSize = 0;
+        }
+
+    }
+
+    vector<MooreState> tempMealy;
+
+    for (const auto& group : NewMooreInGroup)
+    {
+        vector<TransMoore> tempVec;
+        MooreState tempState = group.second[0];
+
+        for (const auto& trans : tempState.transitions)
+        {
+            TransMoore newTrans;
+            newTrans.inputSym = trans.inputSym;
+            newTrans.nextPos = trans.nextPos;
+            tempVec.push_back(newTrans);
+        }
+        tempState.state = group.first;
+        tempState.output = group.second[0].output;
+        tempState.transitions = tempVec;
+        NewMooreInGroup[newStateMap[tempState.state]].push_back(tempState);
+        tempMealy.push_back(tempState);
+    }
+
+    return tempMealy;
 }
+
+vector<MealyState> ReadMealy(vector<MealyState>& positions, ifstream& file)
+{
+
+    string line;
+    getline(file, line);
+    vector<string> tempRow = split(line, ';');
+
+
+    for (size_t i = 1; i < tempRow.size(); ++i) 
+    {
+        MealyState currPos;
+        currPos.curr = tempRow[i];
+        positions.push_back(currPos);
+    }
+
+    vector<string> tRow;
+    while (getline(file, line))
+    {
+        tempRow = split(line, ';');
+        string input_sym = tempRow[0];
+        for (int i = 0; i < positions.size(); i++)
+        {
+
+            Trans trans;
+            tRow = split(tempRow[i + 1], '/');
+            trans.inputSym = input_sym;
+            trans.nextPos = tRow[0];
+            trans.outSym = tRow[1];
+            //cout << tRow[0] << " " << tRow[1] << "\n";
+            positions[i].transitions.push_back(trans);
+        }
+    };
+    file.close();
+
+    return positions;
+}
+
+vector<MooreState> ReadMoore(vector<MooreState>& positions, ifstream& file)
+{
+    string line, lineSt;
+    getline(file, line);
+    vector<string> tempRow = split(line, ';');
+    getline(file, lineSt);
+    vector<string> tempRowSt = split(lineSt, ';');
+
+
+    for (size_t i = 1; i < tempRow.size(); ++i) 
+    {
+        MooreState state;
+        state.output = tempRow[i];
+        state.state = tempRowSt[i]; 
+        positions.push_back(state);
+    }
+
+    vector<string> tRow;
+
+    while (getline(file, line))
+    {
+        tempRow = split(line, ';');
+        string input_sym = tempRow[0];
+        for (int i = 0; i < positions.size(); i++)
+        {
+
+            TransMoore trans;
+            tRow = split(tempRow[i + 1], '/');
+            trans.inputSym = input_sym;
+            trans.nextPos = tRow[0];
+            positions[i].transitions.push_back(trans);
+        }
+    };
+    file.close();
+
+    return positions;
+}
+
+
+void WriteMealy(vector<MealyState>& mealyAutomaton, ofstream& outFile) {
+    if (outFile.is_open()) 
+    {
+        for (const auto& state : mealyAutomaton) 
+        {
+            outFile << ";" << state.curr;
+        }
+        outFile << "\n";
+
+        for (size_t i = 0; i < mealyAutomaton[0].transitions.size(); ++i) 
+        {
+            const auto& inputSym = mealyAutomaton[0].transitions[i].inputSym;
+            outFile << inputSym;
+
+            for (const auto& state : mealyAutomaton) 
+            {
+                const auto& trans = state.transitions[i];
+                outFile << ";" << trans.nextPos << "/" << trans.outSym;
+            }
+            outFile << "\n";
+        }
+        outFile.close();
+    }
+    else 
+    {
+        cerr << "Failed to open file for writing.\n";
+    }
+}
+
+void WriteMoore(vector<MooreState>& mooreAutomaton, ofstream& outFile)
+{
+    if (outFile.is_open())
+    {
+
+        for (const auto& state : mooreAutomaton)
+        {
+            outFile << ";" << state.output;
+        }
+        outFile << "\n";
+
+        for (const auto& state : mooreAutomaton)
+        {
+            outFile << ";" << state.state;
+        }
+        outFile << "\n";
+
+        for (size_t i = 0; i < mooreAutomaton[0].transitions.size(); ++i) 
+        {
+            const auto& inputSym = mooreAutomaton[0].transitions[i].inputSym;
+            outFile << inputSym;
+
+            for (const auto& state : mooreAutomaton) 
+            {
+                const auto& trans = state.transitions[i];
+                outFile << ";" << trans.nextPos;
+            }
+            outFile << "\n";
+        }
+
+        outFile.close();
+    }
+    else
+    {
+        cerr << "Failed to open file for writing.\n";
+    }
+
+}
+
 
 int main(int argc, char* argv[])
 {
@@ -332,18 +592,30 @@ int main(int argc, char* argv[])
     string inputFileName = argv[2];
     string outputFileName = argv[3];
 
+    ifstream file(inputFileName);
+    ofstream outFile(outputFileName);
+
+    if (!file.is_open())
+    {
+        cerr << "Ошибка при открытии файла!" << endl;
+        return 1;
+    }
+
     if (type == "mealy")
     {
-        minimizeMealy(inputFileName, outputFileName);
-    }
-    else if (type == "moore")
-    {
-        minimizeMoore(inputFileName, outputFileName);
+        vector<MealyState> mealyStates;
+        mealyStates = ReadMealy(mealyStates, file);
+        vector<MealyState> reachableStates = findReachableStates(mealyStates);
+        vector<MealyState> minimize = mealyMin(mealyStates);
+        WriteMealy(minimize, outFile);
     }
     else
     {
-        cout << "Invalid type. Use 'mealy' or 'moore'." << endl;
-        return 1;
+        vector<MooreState> mooreStates;
+        mooreStates = ReadMoore(mooreStates, file);
+        vector<MooreState> reachableStates = findMooreReachableStates(mooreStates);
+        vector<MooreState> minimize = mooreMin(reachableStates);
+        WriteMoore(minimize, outFile);
     }
 
     return 0;
