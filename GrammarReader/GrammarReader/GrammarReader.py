@@ -158,9 +158,6 @@ def main():
     output_file_name = sys.argv[2]
 
     process_grammar(input_file_name, output_file_name)
-    
-    # print(sys.version)
-
 
 if __name__ == "__main__":
     main()
