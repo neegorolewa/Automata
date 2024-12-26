@@ -150,16 +150,16 @@ def process_grammar(input_file_name, output_file_name):
     write_machine(machine, output_file_name)
 
 def main():
-    # if len(sys.argv) != 3:
-    #     print("Usage: ", sys.argv[0], " <input.txt> <output.csv>")
-    #     sys.exit(1)
+    if len(sys.argv) != 3:
+        print("Usage: ", sys.argv[0], " <input.txt> <output.csv>")
+        sys.exit(1)
 
-    # input_file_name = sys.argv[1]
-    # output_file_name = sys.argv[2]
+    input_file_name = sys.argv[1]
+    output_file_name = sys.argv[2]
 
-    # process_grammar(input_file_name, output_file_name)
+    process_grammar(input_file_name, output_file_name)
     
-    print(sys.version)
+    # print(sys.version)
 
 
 if __name__ == "__main__":
