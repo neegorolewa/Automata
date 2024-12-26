@@ -31,7 +31,7 @@ def process_left_grammar(grammar):
         
     for i in range(len(transit)):
         for t in transit[i]:
-            match = re.search(r'(<[^>]+>)\s*([\wε]*)', t, flags=re.MULTILINE)
+            match = re.search(r'\s*<(\w+)>\s+([\wε])\s*', t, flags=re.MULTILINE)
             if match:
                 if match[2] not in machine["entries"]:
                     machine["entries"].append(match[2])
