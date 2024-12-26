@@ -19,8 +19,16 @@ def process_left_grammar(grammar):
     list_of_grammars = re.findall(r'^\s*<(\w+)>\s*->\s*((?:<\w+>\s+)?[\wε](?:\s*\|\s*(?:<\w+>\s+)?[\wε])*)\s*$', grammar, flags=re.MULTILINE)
     
     for pairs in list_of_grammars:
-        machine["states_with_transitions"].append({"curr_state": pairs[0], "out": "", "transitions": []})
-    machine["states_with_transitions"].append({"curr_state": "H", "out": "", "transitions": []})
+        machine["states_with_transitions"].append({
+            "curr_state": pairs[0], 
+            "out": "", 
+            "transitions": []
+            })
+    machine["states_with_transitions"].append({
+        "curr_state": "H", 
+        "out": "", 
+        "transitions": []
+        })
    
     transit = []
     for pairs in list_of_grammars:
@@ -71,8 +79,16 @@ def process_right_grammar(grammar):
     list_of_grammars = re.findall(r'^\s*<(\w+)>\s*->\s*([\wε](?:\s+<\w+>)?(?:\s*\|\s*[\wε](?:\s+<\w+>)?)*)\s*$', grammar, flags=re.MULTILINE)
     
     for pairs in list_of_grammars:
-        machine["states_with_transitions"].append({"curr_state": pairs[0], "out": "", "transitions": []})
-    machine["states_with_transitions"].append({"curr_state": "F", "out": "F", "transitions": []})
+        machine["states_with_transitions"].append({
+            "curr_state": pairs[0], 
+            "out": "", 
+            "transitions": []
+            })
+    machine["states_with_transitions"].append({
+        "curr_state": "F", 
+        "out": "F", 
+        "transitions": []
+        })
    
     transit = []
     for pairs in list_of_grammars:
@@ -86,7 +102,7 @@ def process_right_grammar(grammar):
             match = re.search(r'\s*([\wε])\s+<(\w+)>\s*', t, flags=re.MULTILINE)
             if match:
                 if match[1] not in machine["entries"]:
-                    machine["entries"].append(match[2])
+                    machine["entries"].append(match[1])
                 machine["states_with_transitions"][i]["transitions"].append({
                     "state": match[2],
                     "entry": match[1]
