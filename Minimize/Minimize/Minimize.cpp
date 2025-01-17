@@ -20,6 +20,10 @@ vector<string> split(const string& s, char delimiter)
     istringstream tokenStream(s);
     while (getline(tokenStream, token, delimiter)) 
     {
+        if (token.empty())
+        {
+            token = "-";
+        }
         tokens.push_back(token);
     }
     return tokens;
@@ -196,7 +200,6 @@ vector<MealyState> mealyMin(const vector<MealyState>& mealyAutomaton)
         tempState.curr = state.curr; 
         tempState.transitions = tempVec;
         NewMealyInGroup[newStateMap[tempState.curr]].push_back(tempState);
-
     }
 
     auto prevSize = vecOutSet.size();
@@ -292,7 +295,6 @@ vector<MealyState> mealyMin(const vector<MealyState>& mealyAutomaton)
     }
 
     return tempMealy;
-
 
 }
 
@@ -459,9 +461,19 @@ vector<MealyState> ReadMealy(vector<MealyState>& positions, ifstream& file)
         string input_sym = tempRow[0];
         for (int i = 0; i < positions.size(); i++)
         {
+            if (i + 1 >= tempRow.size()) {
+                cerr << "Error: Not enough columns in input file." << endl;
+                continue;
+            }
 
             Trans trans;
             tRow = split(tempRow[i + 1], '/');
+            
+            if (tRow.size() < 2) {
+                cerr << "Error: Invalid transition format." << endl;
+                continue;
+            }
+
             trans.inputSym = input_sym;
             trans.nextPos = tRow[0];
             trans.outSym = tRow[1];
@@ -481,16 +493,23 @@ vector<MooreState> ReadMoore(vector<MooreState>& positions, ifstream& file)
     getline(file, lineSt);
     vector<string> tempRowSt = split(lineSt, ';');
 
-
     for (size_t i = 1; i < tempRow.size(); ++i) 
     {
         MooreState state;
-        state.output = tempRow[i];
+        if (i >= tempRow.size())
+        {
+            state.output = "-";
+        }
+        else
+        {
+            state.output = tempRow[i];
+        }
+
         state.state = tempRowSt[i]; 
         positions.push_back(state);
     }
 
-    vector<string> tRow;
+    string tRow;
 
     while (getline(file, line))
     {
@@ -498,13 +517,20 @@ vector<MooreState> ReadMoore(vector<MooreState>& positions, ifstream& file)
         string input_sym = tempRow[0];
         for (int i = 0; i < positions.size(); i++)
         {
-
             TransMoore trans;
-            tRow = split(tempRow[i + 1], '/');
             trans.inputSym = input_sym;
-            trans.nextPos = tRow[0];
+            if ((i + 1) >= tempRow.size())
+            {
+                trans.nextPos = "-";
+            }
+            else
+            {
+                trans.nextPos = tempRow[i + 1];
+            }
+            std::cout << trans.nextPos << " ";
             positions[i].transitions.push_back(trans);
         }
+        cout << " \n";
     };
     file.close();
 
