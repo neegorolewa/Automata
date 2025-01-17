@@ -71,21 +71,10 @@ class PascalLexer:
                 if in_block_comment:
                     closing_index = line.find('}')
                     if closing_index != -1:
-                        # Закрывающая скобка найдена
-                        block_comment_content += line[:closing_index + 1]
-                        # Заменяем символы новой строки на \n
-                        block_comment_content = block_comment_content.replace('\n', '\\n')
-                        yield Token(
-                            'BLOCK_COMMENT',
-                            block_comment_content,
-                            block_comment_start_line,
-                            block_comment_start_column
-                        )
                         in_block_comment = False
                         self.current_column = closing_index + 2
                         line = line[closing_index + 1:] 
                     else:
-                        # Закрывающая скобка не найдена, продолжаем собирать комментарий
                         block_comment_content += line
                         self.current_line += 1
                         continue
@@ -98,8 +87,10 @@ class PascalLexer:
                     if token_type == 'WHITESPACE':
                         self.current_column += len(lexeme)
                         continue
+                    
+                    if token_type == 'LINE_COMMENT':
+                        continue;
 
-                    #Если это начало блочного комментария
                     if lexeme == '{':
                         in_block_comment = True
                         block_comment_start_line = self.current_line
@@ -107,21 +98,10 @@ class PascalLexer:
                         block_comment_content = lexeme
                         closing_index = line.find('}', self.current_column)
                         if closing_index != -1:
-                            # Блочный комментарий завершился на этой же строке
                             in_block_comment = False
-                            block_comment_content += line[self.current_column:closing_index + 1]
-                            # Заменяем символы новой строки на \n
-                            block_comment_content = block_comment_content.replace('\n', '\\n')
-                            yield Token(
-                                'BLOCK_COMMENT',
-                                block_comment_content,
-                                block_comment_start_line,
-                                block_comment_start_column
-                            )
                             self.current_column = closing_index + 2
                             continue
                         else:
-                            # Блочный комментарий продолжается на следующей строке
                             block_comment_content += line[self.current_column:]
                             self.current_line += 1
                             continue
@@ -138,6 +118,9 @@ class PascalLexer:
                 
                 if not in_block_comment:
                     self.current_line += 1
+                    
+            if in_block_comment:
+                yield Token('BAD', block_comment_content, block_comment_start_line, block_comment_start_column)
 
 def main():
     if len(sys.argv) != 3:
