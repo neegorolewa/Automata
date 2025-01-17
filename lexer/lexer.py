@@ -4,6 +4,7 @@ import sys
 import re
 from typing import NamedTuple, Optional
 
+
 class Token(NamedTuple):
     type: str
     lexeme: str
@@ -13,6 +14,7 @@ class Token(NamedTuple):
     def __str__(self):
         return f'{self.type} ({self.line}, {self.column}) "{self.lexeme}"'
 
+
 class PascalLexer:
     def __init__(self, input_file: str):
         self.input_file = input_file
@@ -20,145 +22,210 @@ class PascalLexer:
         self.current_column = 1
 
         self.keywords = {
-            'array', 'begin', 'else', 'end', 'if', 'of', 'or', 'program',
-            'procedure', 'then', 'type', 'var'
+            "array",
+            "begin",
+            "else",
+            "end",
+            "if",
+            "of",
+            "or",
+            "program",
+            "procedure",
+            "then",
+            "type",
+            "var",
         }
 
         self.patterns = [
-            ('WHITESPACE', r'[\s_]?'), 
-            ('LINE_COMMENT', r'//[^\n]*'),  
-            ('BLOCK_COMMENT', r'\{[^}]*\}'),
-            ('STRING', r"'.*?'"),  
-            ('FLOAT', r'\d+\.\d+'),  
-            ('INTEGER', r'\d+'),  
-            ('IDENTIFIER', r'[a-zA-Z_][a-zA-Z0-9_]*'),  
-            ('ASSIGN', r':='),  
-            ('LESS_EQ', r'<='),  
-            ('GREATER_EQ', r'>='), 
-            ('NOT_EQ', r'<>'),  
-            ('MULTIPLICATION', r'\*'),  
-            ('PLUS', r'\+'),  
-            ('MINUS', r'-'),  
-            ('DIVIDE', r'/'),  
-            ('SEMICOLON', r';'),  
-            ('COMMA', r','),  
-            ('LEFT_PAREN', r'\('), 
-            ('RIGHT_PAREN', r'\)'),  
-            ('LEFT_BRACKET', r'\['),  
-            ('RIGHT_BRACKET', r'\]'),  
-            ('EQ', r'='),  
-            ('GREATER', r'>'),  
-            ('LESS', r'<'), 
-            ('COLON', r':'),  
-            ('DOT', r'\.'), 
-            ('BAD', r'.'),  
+            ("WHITESPACE", r"[\s_]?"),
+            ("LINE_COMMENT", r"//[^\n]*"),
+            ("BLOCK_COMMENT", r"\{[^}]*\}"),
+            ("STRING", r"'(?:[^']|'')*'"),
+            ("FLOAT", r"\d+\.\d+"),
+            ("INTEGER", r"\d+"),
+            ("IDENTIFIER", r"[a-zA-Z_][a-zA-Z0-9_]*"),
+            ("ASSIGN", r":="),
+            ("LESS_EQ", r"<="),
+            ("GREATER_EQ", r">="),
+            ("NOT_EQ", r"<>"),
+            ("MULTIPLICATION", r"\*"),
+            ("PLUS", r"\+"),
+            ("MINUS", r"-"),
+            ("DIVIDE", r"/"),
+            ("SEMICOLON", r";"),
+            ("COMMA", r","),
+            ("LEFT_PAREN", r"\("),
+            ("RIGHT_PAREN", r"\)"),
+            ("LEFT_BRACKET", r"\["),
+            ("RIGHT_BRACKET", r"\]"),
+            ("EQ", r"="),
+            ("GREATER", r">"),
+            ("LESS", r"<"),
+            ("COLON", r":"),
+            ("DOT", r"\."),
+            ("BAD", r"."),
         ]
 
         self.regex = re.compile(
-            '|'.join(f'(?P<{name}>{pattern})' for name, pattern in self.patterns)
+            "|".join(f"(?P<{name}>{pattern})" for name, pattern in self.patterns)
         )
 
     def next_token(self):
         in_block_comment = False
-        block_comment_start_line = 0;
-        block_comment_start_column = 0;
-        block_comment_content = "";
+        block_comment_start_line = 0
+        block_comment_start_column = 0
+        block_comment_content = ""
 
-        with open(self.input_file, 'r') as file:
+        in_string = False
+        string_start_line = 0
+        string_start_column = 0
+        string_content = ""
+
+        with open(self.input_file, "r") as file:
             for line in file:
                 self.current_column = 1
 
                 if in_block_comment:
-                    closing_index = line.find('}')
+                    closing_index = line.find("}")
                     if closing_index != -1:
                         in_block_comment = False
                         self.current_column = closing_index + 2
-                        line = line[closing_index + 1:] 
+                        line = line[closing_index + 1 :]
                     else:
                         block_comment_content += line
                         self.current_line += 1
                         continue
 
+                if in_string:
+                    closing_index = line.find("'")
+                    if closing_index != -1:
+                        in_string = False
+                        string_content += line[: closing_index + 1]
+                        yield Token(
+                            "STRING",
+                            string_content,
+                            string_start_line,
+                            string_start_column,
+                        )
+                        self.current_column = closing_index + 2
+                        line = line[closing_index + 1 :]
+                        self.current_line += 1
+                        print("end string")
+                    else:
+                        string_content += line
+                        self.current_line += 1
+                        continue
 
                 for match in self.regex.finditer(line):
                     token_type = match.lastgroup
                     lexeme = match.group(token_type)
-                    
-                    if token_type == 'WHITESPACE':
+
+                    if token_type == "WHITESPACE":
                         self.current_column += len(lexeme)
                         continue
-                    
-                    if token_type == 'LINE_COMMENT':
-                        continue;
 
-                    if lexeme == '{':
+                    if token_type == "LINE_COMMENT":
+                        continue
+
+                    if lexeme == "{":
                         in_block_comment = True
                         block_comment_start_line = self.current_line
                         block_comment_start_column = self.current_column
                         block_comment_content = lexeme
-                        closing_index = line.find('}', self.current_column)
+                        closing_index = line.find("}", self.current_column)
                         if closing_index != -1:
                             in_block_comment = False
                             self.current_column = closing_index + 2
                             continue
                         else:
-                            block_comment_content += line[self.current_column:]
+                            block_comment_content += line[self.current_column :]
                             self.current_line += 1
                             continue
 
                     if in_block_comment:
                         continue
 
-                    if token_type == 'IDENTIFIER': # and lexeme.lower() in self.keywords:
-                        if len(lexeme) > 256:
+                    if lexeme == "'":
+                        if not in_string:
+                            in_string = True
+                            string_start_line = self.current_line
+                            string_start_column = self.current_column
+                            string_content = ""
+                        else:
+                            in_string = False
+                            string_content += lexeme
                             yield Token(
-                                'BAD', 
-                                lexeme, 
-                                self.current_line, 
-                                self.current_column
+                                "STRING",
+                                string_content,
+                                string_start_line,
+                                string_start_column,
                             )
                             self.current_column += len(lexeme)
                             continue
-                        
+
+                    if in_string:
+                        string_content += lexeme
+                        self.current_column += len(lexeme)
+                        continue
+
+                    if token_type == "IDENTIFIER":
+                        if len(lexeme) > 256:
+                            yield Token(
+                                "BAD", lexeme, self.current_line, self.current_column
+                            )
+                            self.current_column += len(lexeme)
+                            continue
+
                         if lexeme.lower() in self.keywords:
                             token_type = lexeme.upper()
 
-                    if token_type == 'INTEGER':
+                    if token_type == "INTEGER":
                         try:
                             value = int(lexeme)
                             if value < -32768 or value > 32767:
                                 yield Token(
-                                    'BAD',
+                                    "BAD",
                                     lexeme,
                                     self.current_line,
-                                    self.current_column
+                                    self.current_column,
                                 )
                                 self.current_column += len(lexeme)
                                 continue
                         except ValueError:
                             yield Token(
-                                'BAD',
-                                lexeme,
-                                self.current_line,
-                                self.current_column
+                                "BAD", lexeme, self.current_line, self.current_column
                             )
                             self.current_column += len(lexeme)
                             continue
 
-                    yield Token(token_type, lexeme, self.current_line, self.current_column)
+                    yield Token(
+                        token_type, 
+                        lexeme, 
+                        self.current_line, 
+                        self.current_column
+                    )
 
                     self.current_column += len(lexeme)
-                
-                if not in_block_comment:
+
+                if not in_block_comment and not in_string:
                     self.current_line += 1
-                    
+
             if in_block_comment:
                 yield Token(
-                    'BAD', 
-                    block_comment_content, 
-                    block_comment_start_line, 
-                    block_comment_start_column
+                    "BAD",
+                    block_comment_content,
+                    block_comment_start_line,
+                    block_comment_start_column,
                 )
+
+            if in_string:
+                yield Token(
+                    "BAD", 
+                    string_content, 
+                    string_start_line, 
+                    string_start_column
+                )
+
 
 def main():
     if len(sys.argv) != 3:
@@ -170,10 +237,11 @@ def main():
 
     lexer = PascalLexer(input_file)
 
-    with open(output_file, 'w') as output:
+    with open(output_file, "w") as output:
         for token in lexer.next_token():
             print(token)
-            output.write(str(token) + '\n')
+            output.write(str(token) + "\n")
+
 
 if __name__ == "__main__":
     main()

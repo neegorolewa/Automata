@@ -4,7 +4,7 @@ var
   str: array[1..10] of integer;
 begin
   // text comment 
-  a := 5;
+  a := 'string text';
   // Initialize x
   {first line comment
   second line comment}
