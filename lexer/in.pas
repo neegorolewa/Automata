@@ -8,7 +8,8 @@ begin
   // Initialize x
   {first line comment
   second line comment}
-  x := 42;
+  x := 32768;
+  y := 1005;
   str[1] := x + 3.14;
   if x > 5 
   THEN 

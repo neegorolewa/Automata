@@ -109,8 +109,41 @@ class PascalLexer:
                     if in_block_comment:
                         continue
 
-                    if token_type == 'IDENTIFIER' and lexeme.lower() in self.keywords:
-                        token_type = lexeme.upper()
+                    if token_type == 'IDENTIFIER': # and lexeme.lower() in self.keywords:
+                        if len(lexeme) > 256:
+                            yield Token(
+                                'BAD', 
+                                lexeme, 
+                                self.current_line, 
+                                self.current_column
+                            )
+                            self.current_column += len(lexeme)
+                            continue
+                        
+                        if lexeme.lower() in self.keywords:
+                            token_type = lexeme.upper()
+
+                    if token_type == 'INTEGER':
+                        try:
+                            value = int(lexeme)
+                            if value < -32768 or value > 32767:
+                                yield Token(
+                                    'BAD',
+                                    lexeme,
+                                    self.current_line,
+                                    self.current_column
+                                )
+                                self.current_column += len(lexeme)
+                                continue
+                        except ValueError:
+                            yield Token(
+                                'BAD',
+                                lexeme,
+                                self.current_line,
+                                self.current_column
+                            )
+                            self.current_column += len(lexeme)
+                            continue
 
                     yield Token(token_type, lexeme, self.current_line, self.current_column)
 
@@ -120,7 +153,12 @@ class PascalLexer:
                     self.current_line += 1
                     
             if in_block_comment:
-                yield Token('BAD', block_comment_content, block_comment_start_line, block_comment_start_column)
+                yield Token(
+                    'BAD', 
+                    block_comment_content, 
+                    block_comment_start_line, 
+                    block_comment_start_column
+                )
 
 def main():
     if len(sys.argv) != 3:
