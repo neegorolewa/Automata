@@ -6,8 +6,8 @@ begin
   // text comment 
   a := 'string text';
   // Initialize x
-  {first line comment
-  second line comment}
+  {first line comment {"fdkjfkdj"
+  second line comment}1234  VAR 
   x := 32768;
   y := 1005;
   str[1] := x + 3.14;

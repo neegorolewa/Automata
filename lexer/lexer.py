@@ -18,7 +18,7 @@ class Token(NamedTuple):
 class PascalLexer:
     def __init__(self, input_file: str):
         self.input_file = input_file
-        self.current_line = 1
+        self.current_line = 0
         self.current_column = 1
 
         self.keywords = {
@@ -84,16 +84,31 @@ class PascalLexer:
         with open(self.input_file, "r") as file:
             for line in file:
                 self.current_column = 1
-
+                self.current_line += 1
+                
                 if in_block_comment:
                     closing_index = line.find("}")
+                    opening_index = line.find("{")
                     if closing_index != -1:
                         in_block_comment = False
-                        self.current_column = closing_index + 2
-                        line = line[closing_index + 1 :]
+                        if closing_index == len(line) - 1:
+                            #self.current_line += 1
+                            self.current_column = 1
+                            print(f"Block comment ended at line {self.current_line - 1}, moving to line {self.current_line}")
+                        else:
+                            self.current_column = closing_index + 2
+                            line = line[closing_index + 1 :]
+                            print(f"Block comment ended at line {self.current_line}, column {closing_index}, continuing at column {self.current_column}")
+                    # else:
+                    #     block_comment_content += line
+                    #     self.current_line += 1
+                    #     print(f"Block comment continues at line {self.current_line}")
+                    #     continue
+                    elif opening_index != -1:
+                        pass
                     else:
                         block_comment_content += line
-                        self.current_line += 1
+                        #self.current_line += 1
                         continue
 
                 if in_string:
@@ -109,11 +124,12 @@ class PascalLexer:
                         )
                         self.current_column = closing_index + 2
                         line = line[closing_index + 1 :]
-                        self.current_line += 1
+                        #self.current_line += 1
                         print("end string")
                     else:
                         string_content += line
-                        self.current_line += 1
+                        #self.current_line += 1
+                        print("String continues at next line")
                         continue
 
                 for match in self.regex.finditer(line):
@@ -130,6 +146,7 @@ class PascalLexer:
                     if lexeme == "{":
                         in_block_comment = True
                         block_comment_start_line = self.current_line
+                        print(self.current_line)
                         block_comment_start_column = self.current_column
                         block_comment_content = lexeme
                         closing_index = line.find("}", self.current_column)
@@ -139,7 +156,8 @@ class PascalLexer:
                             continue
                         else:
                             block_comment_content += line[self.current_column :]
-                            self.current_line += 1
+                            print(f"Block comment starts at line {self.current_line}")
+                            #self.current_line += 1
                             continue
 
                     if in_block_comment:
@@ -151,6 +169,7 @@ class PascalLexer:
                             string_start_line = self.current_line
                             string_start_column = self.current_column
                             string_content = ""
+                            print(f"String starts at line {self.current_line}, column {self.current_column}")
                         else:
                             in_string = False
                             string_content += lexeme
@@ -161,6 +180,7 @@ class PascalLexer:
                                 string_start_column,
                             )
                             self.current_column += len(lexeme)
+                            print(f"String ends at line {self.current_line}, column {self.current_column}")
                             continue
 
                     if in_string:
@@ -181,8 +201,7 @@ class PascalLexer:
 
                     if token_type == "INTEGER":
                         try:
-                            value = int(lexeme)
-                            if value < -32768 or value > 32767:
+                            if len(lexeme) > 16:
                                 yield Token(
                                     "BAD",
                                     lexeme,
@@ -207,8 +226,8 @@ class PascalLexer:
 
                     self.current_column += len(lexeme)
 
-                if not in_block_comment and not in_string:
-                    self.current_line += 1
+                #if not in_block_comment and not in_string:
+                    #self.current_line += 1
 
             if in_block_comment:
                 yield Token(
