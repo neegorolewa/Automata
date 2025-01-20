@@ -198,7 +198,7 @@ class PascalLexer:
 
                         if lexeme.lower() in self.keywords:
                             token_type = lexeme.upper()
-
+                    
                     if token_type == "INTEGER":
                         try:
                             if len(lexeme) > 16:
@@ -216,14 +216,13 @@ class PascalLexer:
                             )
                             self.current_column += len(lexeme)
                             continue
-
+                    
                     yield Token(
-                        token_type, 
-                        lexeme, 
-                        self.current_line, 
+                        token_type,
+                        lexeme,
+                        self.current_line,
                         self.current_column
                     )
-
                     self.current_column += len(lexeme)
 
                 #if not in_block_comment and not in_string:
