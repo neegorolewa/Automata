@@ -37,7 +37,7 @@ class PascalLexer:
         }
 
         self.patterns = [
-            ("WHITESPACE", r"[\s_]?"),
+            ("WHITESPACE", r"[\s]+?"),
             ("LINE_COMMENT", r"//[^\n]*"),
             ("BLOCK_COMMENT", r"\{[^}]*\}"),
             ("STRING", r"'(?:[^']|'')*'"),

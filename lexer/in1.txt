@@ -1,1 +1,2 @@
-{} VAR {123}
+s_adasd
+_sdsd_dsd
