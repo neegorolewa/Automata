@@ -143,10 +143,14 @@ class PascalLexer:
                     if token_type == "LINE_COMMENT":
                         continue
 
+                    if token_type == "BLOCK_COMMENT":
+                        self.current_column += len(lexeme)
+                        continue
+                    
                     if lexeme == "{":
                         in_block_comment = True
                         block_comment_start_line = self.current_line
-                        print(self.current_line)
+                        #print(self.current_line)
                         block_comment_start_column = self.current_column
                         block_comment_content = lexeme
                         closing_index = line.find("}", self.current_column)
