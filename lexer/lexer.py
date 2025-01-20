@@ -41,7 +41,7 @@ class PascalLexer:
             ("LINE_COMMENT", r"//[^\n]*"),
             ("BLOCK_COMMENT", r"\{[^}]*\}"),
             ("STRING", r"'(?:[^']|'')*'"),
-            ("FLOAT", r"\d+(\.\d+)?([eE][+-]?\d+)?"),
+            ("FLOAT", r"\d+\.\d+(?:[eE][-+]?\d+)?|\.\d+(?:[eE][-+]?\d+)?|\d+[eE][-+]?\d+"),
             ("INTEGER", r"\d+"),
             ("IDENTIFIER", r"[a-zA-Z_][a-zA-Z0-9_]*"),
             ("ASSIGN", r":="),
@@ -200,6 +200,9 @@ class PascalLexer:
                             token_type = lexeme.upper()
                     
                     if token_type == "INTEGER":
+                        # next_char = line[match.end()] if match.end() < len(line) else None
+                        # if next_char in {'.', 'e', 'E'}:
+                        #     continue
                         try:
                             if len(lexeme) > 16:
                                 yield Token(
@@ -216,6 +219,15 @@ class PascalLexer:
                             )
                             self.current_column += len(lexeme)
                             continue
+                        
+                        # yield Token(
+                        #     "INTEGER",
+                        #     lexeme,
+                        #     self.current_line,
+                        #     self.current_column
+                        # )
+                        # self.current_column += len(lexeme)
+
                     
                     yield Token(
                         token_type,
