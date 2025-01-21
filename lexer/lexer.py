@@ -3,6 +3,7 @@
 import sys
 import re
 from typing import NamedTuple, Optional
+from xml.etree.ElementTree import tostring
 
 
 class Token(NamedTuple):
@@ -92,23 +93,16 @@ class PascalLexer:
                     if closing_index != -1:
                         in_block_comment = False
                         if closing_index == len(line) - 1:
-                            #self.current_line += 1
                             self.current_column = 1
                             print(f"Block comment ended at line {self.current_line - 1}, moving to line {self.current_line}")
                         else:
                             self.current_column = closing_index + 2
                             line = line[closing_index + 1 :]
                             print(f"Block comment ended at line {self.current_line}, column {closing_index}, continuing at column {self.current_column}")
-                    # else:
-                    #     block_comment_content += line
-                    #     self.current_line += 1
-                    #     print(f"Block comment continues at line {self.current_line}")
-                    #     continue
                     elif opening_index != -1:
                         pass
                     else:
                         block_comment_content += line
-                        #self.current_line += 1
                         continue
 
                 if in_string:
@@ -124,11 +118,9 @@ class PascalLexer:
                         )
                         self.current_column = closing_index + 2
                         line = line[closing_index + 1 :]
-                        #self.current_line += 1
                         print("end string")
                     else:
                         string_content += line
-                        #self.current_line += 1
                         print("String continues at next line")
                         continue
 
@@ -150,7 +142,6 @@ class PascalLexer:
                     if lexeme == "{":
                         in_block_comment = True
                         block_comment_start_line = self.current_line
-                        #print(self.current_line)
                         block_comment_start_column = self.current_column
                         block_comment_content = lexeme
                         closing_index = line.find("}", self.current_column)
@@ -161,7 +152,6 @@ class PascalLexer:
                         else:
                             block_comment_content += line[self.current_column :]
                             print(f"Block comment starts at line {self.current_line}")
-                            #self.current_line += 1
                             continue
 
                     if in_block_comment:
@@ -173,7 +163,6 @@ class PascalLexer:
                             string_start_line = self.current_line
                             string_start_column = self.current_column
                             string_content = ""
-                            print(f"String starts at line {self.current_line}, column {self.current_column}")
                         else:
                             in_string = False
                             string_content += lexeme
@@ -184,12 +173,12 @@ class PascalLexer:
                                 string_start_column,
                             )
                             self.current_column += len(lexeme)
-                            print(f"String ends at line {self.current_line}, column {self.current_column}")
                             continue
 
                     if in_string:
-                        string_content += lexeme
-                        self.current_column += len(lexeme)
+                        #string_content += lexeme
+                        string_content += line[self.current_column - 1 :]
+                        self.current_column += len(line) + 1
                         continue
 
                     if token_type == "IDENTIFIER":
@@ -204,9 +193,6 @@ class PascalLexer:
                             token_type = lexeme.upper()
                     
                     if token_type == "INTEGER":
-                        # next_char = line[match.end()] if match.end() < len(line) else None
-                        # if next_char in {'.', 'e', 'E'}:
-                        #     continue
                         try:
                             if len(lexeme) > 16:
                                 yield Token(
@@ -223,14 +209,6 @@ class PascalLexer:
                             )
                             self.current_column += len(lexeme)
                             continue
-                        
-                        # yield Token(
-                        #     "INTEGER",
-                        #     lexeme,
-                        #     self.current_line,
-                        #     self.current_column
-                        # )
-                        # self.current_column += len(lexeme)
 
                     
                     yield Token(

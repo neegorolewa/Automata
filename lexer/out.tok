@@ -1,2 +1,3 @@
-IDENTIFIER (1, 1) "s_adasd"
-IDENTIFIER (2, 1) "_sdsd_dsd"
+VAR (1, 1) "var"
+BAD (1, 5) "'unclosed string
+kfkf kf kfk k"

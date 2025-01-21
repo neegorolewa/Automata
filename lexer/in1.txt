@@ -1,2 +1,2 @@
-s_adasd
-_sdsd_dsd
+var 'unclosed string
+kfkf kf kfk k
