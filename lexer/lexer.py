@@ -229,8 +229,8 @@ class PascalLexer:
                     )
                     self.current_column += len(lexeme)
                     
-                if in_block_comment and None:
-                    in_block_comment = False
+                # if in_block_comment and not line.rstrip():
+                #     in_block_comment = False
 
             if in_block_comment:
                 yield Token(
@@ -261,8 +261,6 @@ def main():
 
     with open(output_file, "w") as output:
         for token in lexer.next_token():
-            if token is None:
-                break
             print(token)
             output.write(str(token) + "\n")
 
