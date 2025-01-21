@@ -181,6 +181,16 @@ class PascalLexer:
                         self.current_column += len(line) + 1
                         continue
 
+                    if any(ord(char) > 127 for char in lexeme):  # Проверка на не-ASCII символы
+                            yield Token(
+                                "BAD",
+                                lexeme,  # Вся строка как BAD
+                                self.current_line,
+                                self.current_column,
+                            )
+                            self.current_column += len(lexeme)
+                            continue
+                    
                     if token_type == "IDENTIFIER":
                         if len(lexeme) > 256:
                             yield Token(
