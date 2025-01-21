@@ -123,6 +123,16 @@ class PascalLexer:
                         string_content += line
                         print("String continues at next line")
                         continue
+                    #
+                if any(ord(char) > 127 for char in line):  # Проверка на не-ASCII символы
+                    yield Token(
+                        "BAD",
+                        line.strip(),  # Вся строка как BAD
+                        self.current_line,
+                        self.current_column,
+                    )
+                    self.current_column += len(line)
+                    continue
 
                 for match in self.regex.finditer(line):
                     token_type = match.lastgroup
