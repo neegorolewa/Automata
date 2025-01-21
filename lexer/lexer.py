@@ -82,13 +82,13 @@ class PascalLexer:
         string_start_column = 0
         string_content = ""
 
-        invalid_char_pattern = re.compile(r"[^\x00-\x7F()\s;=+*/<>\-:.,\[\]{}a-zA-Z0-9_]")
+        #invalid_char_pattern = re.compile(r"[^\x00-\x7F()\s;=+*/<>\-:.,\[\]{}a-zA-Z0-9_]")
     
         with open(self.input_file, "r") as file:
             for line in file:
                 self.current_column = 1
-                self.current_line += 1
-                
+                self.current_line += 1                
+
                 if in_block_comment:
                     closing_index = line.find("}")
                     opening_index = line.find("{")
@@ -125,20 +125,6 @@ class PascalLexer:
                         string_content += line
                         print("String continues at next line")
                         continue
-                    #
-                invalid_match = invalid_char_pattern.search(line)
-                if invalid_match:
-                    # Если найдены недопустимые символы, обрабатываем их как BAD
-                    bad_lexeme = invalid_match.group()
-                    yield Token(
-                        "BAD",
-                        bad_lexeme,
-                        self.current_line,
-                        self.current_column + invalid_match.start(),
-                    )
-                    self.current_column += invalid_match.end()
-                    line = line[:invalid_match.start()] + line[invalid_match.end():]
-                    continue
             
                 for match in self.regex.finditer(line):
                     token_type = match.lastgroup
@@ -192,7 +178,6 @@ class PascalLexer:
                             continue
 
                     if in_string:
-                        #string_content += lexeme
                         string_content += line[self.current_column - 1 :]
                         self.current_column += len(line) + 1
                         continue
