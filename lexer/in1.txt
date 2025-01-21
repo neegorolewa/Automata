@@ -1,2 +1,4 @@
 BEGIN
-@begin
+{}
+{fdfdfsdfd
+var}

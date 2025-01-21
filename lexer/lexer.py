@@ -64,8 +64,8 @@ class PascalLexer:
             ("LESS", r"<"),
             ("COLON", r":"),
             ("DOT", r"\."),
-            ("BAD", r".+"),
-            #("BAD", r"[^a-zA-Z0-9_\s\(\)\{\}\[\];=+*/<>\-:.,]+"),
+            ("BAD", r"."),
+            #("BAD", r"[^a-zA-Z0-9_\s\(\)\{\}\[\];=+*/<>\-:.,]"),
         ]
 
         self.regex = re.compile(
