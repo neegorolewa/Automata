@@ -82,6 +82,8 @@ class PascalLexer:
         string_start_column = 0
         string_content = ""
 
+        invalid_char_pattern = re.compile(r"[^\x00-\x7F()\s;=+*/<>\-:.,\[\]{}a-zA-Z0-9_]")
+    
         with open(self.input_file, "r") as file:
             for line in file:
                 self.current_column = 1
@@ -124,16 +126,20 @@ class PascalLexer:
                         print("String continues at next line")
                         continue
                     #
-                if any(ord(char) > 127 for char in line):  # Проверка на не-ASCII символы
+                invalid_match = invalid_char_pattern.search(line)
+                if invalid_match:
+                    # Если найдены недопустимые символы, обрабатываем их как BAD
+                    bad_lexeme = invalid_match.group()
                     yield Token(
                         "BAD",
-                        line.strip(),  # Вся строка как BAD
+                        bad_lexeme,
                         self.current_line,
-                        self.current_column,
+                        self.current_column + invalid_match.start(),
                     )
-                    self.current_column += len(line)
+                    self.current_column += invalid_match.end()
+                    line = line[:invalid_match.start()] + line[invalid_match.end():]
                     continue
-
+            
                 for match in self.regex.finditer(line):
                     token_type = match.lastgroup
                     lexeme = match.group(token_type)
