@@ -1,3 +1,2 @@
-BEGIN (1, 1) "BEGIN"
-VAR (4, 1) "var"
-BAD (4, 4) "}"
+BAD (5, 1) "@"
+BEGIN (5, 2) "begin"

@@ -65,7 +65,6 @@ class PascalLexer:
             ("COLON", r":"),
             ("DOT", r"\."),
             ("BAD", r"."),
-            #("BAD", r"[^a-zA-Z0-9_\s\(\)\{\}\[\];=+*/<>\-:.,]"),
         ]
 
         self.regex = re.compile(
@@ -82,26 +81,25 @@ class PascalLexer:
         string_start_line = 0
         string_start_column = 0
         string_content = ""
-
-        #invalid_char_pattern = re.compile(r"[^\x00-\x7F()\s;=+*/<>\-:.,\[\]{}a-zA-Z0-9_]")
     
         with open(self.input_file, "r") as file:
             for line in file:
                 self.current_column = 1
-                self.current_line += 1                
+                self.current_line += 1
 
                 if in_block_comment:
                     closing_index = line.find("}")
                     opening_index = line.find("{")
                     if closing_index != -1:
                         in_block_comment = False
-                        if closing_index == len(line) - 1:
-                            self.current_column = 1
-                            print(f"Block comment ended at line {self.current_line - 1}, moving to line {self.current_line}")
-                        else:
-                            self.current_column = closing_index + 2
-                            line = line[closing_index + 1 :]
-                            print(f"Block comment ended at line {self.current_line}, column {closing_index}, continuing at column {self.current_column}")
+                        # if closing_index == len(line) - 1:
+                        #     self.current_column = 1
+                        # else:
+                        #     self.current_column = closing_index + 2
+                        #     line = line[closing_index + 1 :]
+                        in_block_comment = False
+                        self.current_column = closing_index + 2
+                        line = line[closing_index + 1 :]
                     elif opening_index != -1:
                         pass
                     else:
@@ -154,12 +152,12 @@ class PascalLexer:
                             continue
                         else:
                             block_comment_content += line[self.current_column :]
-                            print(f"Block comment starts at line {self.current_line}")
                             continue
 
                     if in_block_comment:
                         continue
 
+                    
                     if lexeme == "'":
                         if not in_string:
                             in_string = True
@@ -183,15 +181,15 @@ class PascalLexer:
                         self.current_column += len(line) + 1
                         continue
 
-                    # if token_type == "BAD":
-                    #     yield Token(
-                    #         "BAD",
-                    #         lexeme,
-                    #         self.current_line,
-                    #         self.current_column,
-                    #     )
-                    #     self.current_column += len(lexeme)
-                    #     continue
+                    if token_type == "BAD":
+                        yield Token(
+                            "BAD",
+                            lexeme,
+                            self.current_line,
+                            self.current_column,
+                        )
+                        self.current_column += len(lexeme)
+                        continue
 
                     if token_type == "IDENTIFIER":
                         if len(lexeme) > 256:
@@ -230,9 +228,9 @@ class PascalLexer:
                         self.current_column
                     )
                     self.current_column += len(lexeme)
-
-                #if not in_block_comment and not in_string:
-                    #self.current_line += 1
+                    
+                if in_block_comment and None:
+                    in_block_comment = False
 
             if in_block_comment:
                 yield Token(
@@ -263,6 +261,8 @@ def main():
 
     with open(output_file, "w") as output:
         for token in lexer.next_token():
+            if token is None:
+                break
             print(token)
             output.write(str(token) + "\n")
 

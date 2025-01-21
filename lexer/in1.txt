@@ -1,4 +1,7 @@
-BEGIN
+{first line {comment fdkjfkdj
+djfkjdkfj sdsdfdsf}
 {}
-{fdfdfsdfd
-var}
+{}
+@begin
+{dasdasd\
+asdasd}
