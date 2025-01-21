@@ -128,16 +128,6 @@ class PascalLexer:
                     token_type = match.lastgroup
                     lexeme = match.group(token_type)
 
-                    if any(ord(char) > 127 for char in lexeme):  # Ïðîâåðêà òîëüêî íà íå-ASCII ñèìâîëû
-                        yield Token(
-                            "BAD",
-                            lexeme,  # Âñÿ ñòðîêà êàê BAD
-                            self.current_line,
-                            self.current_column,
-                        )
-                        self.current_column += len(lexeme)
-                        continue
-
                     if token_type == "WHITESPACE":
                         self.current_column += len(lexeme)
                         continue
@@ -191,6 +181,16 @@ class PascalLexer:
                         self.current_column += len(line) + 1
                         continue
                     
+                    if any(ord(char) > 127 or not char.isalnum() for char in lexeme):  # ÐŸÑ€Ð¾Ð²ÐµÑ€ÐºÐ° Ð½Ð° Ð½Ðµ-ASCII Ð¸ ÑÐ¿ÐµÑ†Ð¸Ð°Ð»ÑŒÐ½Ñ‹Ðµ ÑÐ¸Ð¼Ð²Ð¾Ð»Ñ‹
+                        yield Token(
+                            "BAD",
+                            lexeme,  # Ð’ÑÑ ÑÑ‚Ñ€Ð¾ÐºÐ° ÐºÐ°Ðº BAD
+                            self.current_line,
+                            self.current_column,
+                        )
+                        self.current_column += len(lexeme)
+                        continue
+
                     if token_type == "IDENTIFIER":
                         if len(lexeme) > 256:
                             yield Token(
