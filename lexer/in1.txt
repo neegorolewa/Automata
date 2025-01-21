@@ -1,1 +1,2 @@
-{коммент} var
+BEGIN
+@begin

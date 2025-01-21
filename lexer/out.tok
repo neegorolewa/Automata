@@ -1,1 +1,3 @@
-VAR (1, 18) "var"
+BEGIN (1, 1) "BEGIN"
+BAD (2, 1) "@"
+BEGIN (2, 2) "begin"

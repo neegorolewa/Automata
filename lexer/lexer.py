@@ -64,7 +64,8 @@ class PascalLexer:
             ("LESS", r"<"),
             ("COLON", r":"),
             ("DOT", r"\."),
-            ("BAD", r"."),
+            #("BAD", r"."),
+            ("BAD", r"[^a-zA-Z0-9_\s\(\)\{\}\[\];=+*/<>\-:.,]+"),
         ]
 
         self.regex = re.compile(
@@ -180,6 +181,16 @@ class PascalLexer:
                     if in_string:
                         string_content += line[self.current_column - 1 :]
                         self.current_column += len(line) + 1
+                        continue
+
+                    if token_type == "BAD":
+                        yield Token(
+                            "BAD",
+                            lexeme,
+                            self.current_line,
+                            self.current_column,
+                        )
+                        self.current_column += len(lexeme)
                         continue
 
                     if token_type == "IDENTIFIER":
