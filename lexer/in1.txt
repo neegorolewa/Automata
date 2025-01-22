@@ -9,3 +9,4 @@ string
 {block 
 fdfdf comment}
 'unclosed string
+1_qwerty

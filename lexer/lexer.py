@@ -24,10 +24,12 @@ class Patterns:
     INTEGER = r"\d+"
     IDENTIFIER = r"[a-zA-Z_][a-zA-Z0-9_]*"
     OPERATOR = r"[\+\-\*/;,=\(\)\[\]{}<>:\.]"
-    BAD = r"[^ \t\n\(\)\+\-\*/;,=\[\]{}<>'.:a-zA-Z0-9_]+"
     OPERATOR_CHECK = r"[ \t\(\)\+\-\*/;,=\[\]{}<>'.:]"
     NOT_RIGHT_SYMBOLS = r"^[a-zA-Z0-9_]*$"
     NOT_RIGHT_OPERATORS = r"[^ \t\n\(\)\+\-\*/;,=\[\]{}<>'.:]*"
+    BAD_IDENTIFIER = r"\d+[a-zA-Z_][a-zA-Z0-9_]*"
+    SYM_DIG = r"[ \t\n\(\)\+\-\*/;,=\[\]{}<>'.:0-9]"
+    IDENT_WITH_DIG = r"[a-zA-Z0-9_]*"
 
 class PascalLexer:
     KEYWORDS = {
@@ -143,6 +145,14 @@ class PascalLexer:
                     self.buffer = ""
                     return bad_token
 
+            # match = re.match(Patterns.BAD_IDENTIFIER, self.buffer)
+            # if match:
+            #     lexeme = match.group(0)
+            #     bad_token = Token("BAD", lexeme, self.current_line, self.current_column)
+            #     self.buffer = self.buffer[len(lexeme):]
+            #     self.current_column += len(lexeme)
+            #     return bad_token
+            
             # Обработка чисел
             match = re.match(Patterns.FLOAT, self.buffer)
             if match:
@@ -159,7 +169,14 @@ class PascalLexer:
                     self.buffer = self.buffer[len(lexeme):]
                     self.current_column += len(lexeme)
                     return bad_token
-
+                
+                if len(self.buffer) > len(lexeme) and not re.match(Patterns.SYM_DIG, self.buffer[len(lexeme):][0]):
+                    match = re.match(Patterns.IDENT_WITH_DIG, self.buffer)
+                    bad_token = Token("BAD", match.group(0), self.current_line, self.current_column)
+                    self.buffer = self.buffer[len(match.group(0)):]
+                    self.current_column += len(match.group(0))
+                    return bad_token
+                
                 token_type = "FLOAT" if "." in lexeme or "e" in lexeme.lower() else "INTEGER"
                 token = Token(token_type, lexeme, self.current_line, self.current_column)
                 self.buffer = self.buffer[len(lexeme):]
