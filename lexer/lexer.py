@@ -19,7 +19,7 @@ class Patterns:
     WHITESPACE = r"[\s]+"
     LINE_COMMENT = r"//[^\n]*"
     BLOCK_COMMENT = r"\{[^}]*\}"
-    STRING = r"'(?:[^']|'')*'"
+    STRING = r"'(.*?)'"
     FLOAT = r"\d+(\.)?(\d+)?([eE][+-]?\d+)?"
     INTEGER = r"\d+"
     IDENTIFIER = r"[a-zA-Z_][a-zA-Z0-9_]*"

@@ -10,3 +10,4 @@ string
 fdfdf comment}
 'unclosed string
 1_qwerty
+'string''string'
