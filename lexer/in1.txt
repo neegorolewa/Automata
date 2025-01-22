@@ -1,7 +1,7 @@
-{first line {comment fdkjfkdj
-djfkjdkfj sdsdfdsf}
-{}
-{}
-@begin
-{dasdasd\
-asdasd}
+@%&begin
+123.
+testòåñò
+òåñòtest
+string
+{block 
+fdfdf comment}

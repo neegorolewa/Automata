@@ -8,6 +8,7 @@ begin
   // Initialize x
   {first line comment fdkjfkdj
 second line comment}
+  teståñò
   x := 32768;
   y := 1005;
   str[1] := x + 3.14;

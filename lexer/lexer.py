@@ -3,8 +3,6 @@
 import sys
 import re
 from typing import NamedTuple, Optional
-from xml.etree.ElementTree import tostring
-
 
 class Token(NamedTuple):
     type: str
@@ -14,7 +12,6 @@ class Token(NamedTuple):
 
     def __str__(self):
         return f'{self.type} ({self.line}, {self.column}) "{self.lexeme}"'
-
 
 class PascalLexer:
     def __init__(self, input_file: str):
@@ -38,7 +35,7 @@ class PascalLexer:
         }
 
         self.patterns = [
-            ("WHITESPACE", r"[\s]+?"),
+            ("WHITESPACE", r"[\s]+"),
             ("LINE_COMMENT", r"//[^\n]*"),
             ("BLOCK_COMMENT", r"\{[^}]*\}"),
             ("STRING", r"'(?:[^']|'')*'"),
@@ -70,7 +67,7 @@ class PascalLexer:
         self.regex = re.compile(
             "|".join(f"(?P<{name}>{pattern})" for name, pattern in self.patterns)
         )
-
+    
     def next_token(self):
         in_block_comment = False
         block_comment_start_line = 0
@@ -81,7 +78,7 @@ class PascalLexer:
         string_start_line = 0
         string_start_column = 0
         string_content = ""
-    
+
         with open(self.input_file, "r") as file:
             for line in file:
                 self.current_column = 1
@@ -89,19 +86,10 @@ class PascalLexer:
 
                 if in_block_comment:
                     closing_index = line.find("}")
-                    opening_index = line.find("{")
                     if closing_index != -1:
-                        in_block_comment = False
-                        # if closing_index == len(line) - 1:
-                        #     self.current_column = 1
-                        # else:
-                        #     self.current_column = closing_index + 2
-                        #     line = line[closing_index + 1 :]
                         in_block_comment = False
                         self.current_column = closing_index + 2
                         line = line[closing_index + 1 :]
-                    elif opening_index != -1:
-                        pass
                     else:
                         block_comment_content += line
                         continue
@@ -119,12 +107,10 @@ class PascalLexer:
                         )
                         self.current_column = closing_index + 2
                         line = line[closing_index + 1 :]
-                        print("end string")
                     else:
                         string_content += line
-                        print("String continues at next line")
                         continue
-            
+
                 for match in self.regex.finditer(line):
                     token_type = match.lastgroup
                     lexeme = match.group(token_type)
@@ -139,7 +125,7 @@ class PascalLexer:
                     if token_type == "BLOCK_COMMENT":
                         self.current_column += len(lexeme)
                         continue
-                    
+
                     if lexeme == "{":
                         in_block_comment = True
                         block_comment_start_line = self.current_line
@@ -157,13 +143,12 @@ class PascalLexer:
                     if in_block_comment:
                         continue
 
-                    
                     if lexeme == "'":
                         if not in_string:
                             in_string = True
                             string_start_line = self.current_line
                             string_start_column = self.current_column
-                            string_content = ""
+                            string_content = lexeme
                         else:
                             in_string = False
                             string_content += lexeme
@@ -177,17 +162,7 @@ class PascalLexer:
                             continue
 
                     if in_string:
-                        string_content += line[self.current_column - 1 :]
-                        self.current_column += len(line) + 1
-                        continue
-
-                    if token_type == "BAD":
-                        yield Token(
-                            "BAD",
-                            lexeme,
-                            self.current_line,
-                            self.current_column,
-                        )
+                        string_content += lexeme
                         self.current_column += len(lexeme)
                         continue
 
@@ -201,26 +176,15 @@ class PascalLexer:
 
                         if lexeme.lower() in self.keywords:
                             token_type = lexeme.upper()
-                    
+
                     if token_type == "INTEGER":
-                        try:
-                            if len(lexeme) > 16:
-                                yield Token(
-                                    "BAD",
-                                    lexeme,
-                                    self.current_line,
-                                    self.current_column,
-                                )
-                                self.current_column += len(lexeme)
-                                continue
-                        except ValueError:
+                        if len(lexeme) > 16:
                             yield Token(
                                 "BAD", lexeme, self.current_line, self.current_column
                             )
                             self.current_column += len(lexeme)
                             continue
 
-                    
                     yield Token(
                         token_type,
                         lexeme,
@@ -228,9 +192,6 @@ class PascalLexer:
                         self.current_column
                     )
                     self.current_column += len(lexeme)
-                    
-                # if in_block_comment and not line.rstrip():
-                #     in_block_comment = False
 
             if in_block_comment:
                 yield Token(
@@ -248,7 +209,6 @@ class PascalLexer:
                     string_start_column
                 )
 
-
 def main():
     if len(sys.argv) != 3:
         print("Usage: python PascalLexer.py <input_file> <output_file>")
@@ -263,7 +223,6 @@ def main():
         for token in lexer.next_token():
             print(token)
             output.write(str(token) + "\n")
-
 
 if __name__ == "__main__":
     main()
