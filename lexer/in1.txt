@@ -1,3 +1,6 @@
+0.123
+123e+10
+123
 @%&begin
 123.
 testтест
@@ -5,3 +8,4 @@ testтест
 string
 {block 
 fdfdf comment}
+'unclosed string
